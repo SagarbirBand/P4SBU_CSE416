@@ -1,36 +1,24 @@
-import Link from "next/link";
+// app/page.tsx
+import Link from 'next/link';
 
 export default function Home() {
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* NAVBAR */}
-      
-
-      {/* HERO SECTION */}
-      <div className="relative w-full flex-grow bg-[url('/map-bg.jpg')] bg-cover bg-center flex items-center justify-center">
-        {/* Optional semi-transparent overlay */}
-        <div className="absolute inset-0 bg-white/70"></div>
-
-        <div className="relative z-10 text-center p-8">
-          <h1 className="text-5xl font-bold text-red-600 mb-4">
-            Welcome to P4SBU
-          </h1>
-          <p className="text-xl text-black mb-8">Find Parking Now</p>
-          <Link
-            href="/reserve"
-            className="bg-red-600 text-white px-6 py-3 rounded font-medium hover:bg-red-700"
-          >
-            Reserve Now
-          </Link>
-        </div>
+    <main className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
+      <h1 className="text-4xl font-bold mb-4">Welcome to P4SBU Parking System</h1>
+      <p className="mb-6">Reserve your parking spot at Stony Brook University easily!</p>
+      <div className="flex space-x-4">
+        <Link href="/login" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+          Login
+        </Link>
+        <Link href="/register" className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+          Register
+        </Link>
       </div>
-
-      {/* FOOTER */}
-      <footer className="w-full p-4 bg-white text-center text-black border-t border-gray-200">
-        <p>
-          &copy; {new Date().getFullYear()} P4SBU. All rights reserved.
-        </p>
-      </footer>
-    </div>
+      <div className="mt-8">
+        <Link href="/contact" className="text-blue-500 hover:underline">
+          Contact Us
+        </Link>
+      </div>
+    </main>
   );
 }
