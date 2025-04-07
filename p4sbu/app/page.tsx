@@ -3,21 +3,28 @@ import Link from 'next/link';
 
 export default function Home() {
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
-      <h1 className="text-4xl font-bold mb-4">Welcome to P4SBU Parking System</h1>
-      <p className="mb-6">Reserve your parking spot at Stony Brook University easily!</p>
-      <div className="flex space-x-4">
-        <Link href="/login" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-          Login
-        </Link>
-        <Link href="/register" className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-          Register
-        </Link>
-      </div>
-      <div className="mt-8">
-        <Link href="/contact" className="text-blue-500 hover:underline">
-          Contact Us
-        </Link>
+    <main className="relative min-h-screen flex flex-col items-center justify-center">
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: "url('/map-bg.jpg')", opacity: 0.25 }}
+      />
+      {/* Content */}
+      <div className="relative z-10 text-center">
+        <h1 className="text-4xl font-bold mb-4 text-red-500">Welcome to P4SBU Parking System</h1>
+        <p className="mb-6 text-black">Reserve your parking spot at Stony Brook University easily!</p>
+        <div className="flex justify-center space-x-4">
+          <Link
+            href="/" // TODO
+            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-700"
+          >
+            Reserve Now
+          </Link>
+        </div>
+        <div className="mt-8">
+          <Link href="/contact" className="text-blue-500 hover:text-blue-700">
+            Contact Us
+          </Link>
+        </div>
       </div>
     </main>
   );

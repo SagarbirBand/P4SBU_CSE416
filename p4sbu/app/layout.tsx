@@ -14,7 +14,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
+      <body className="bg-white">
         {/* NAVBAR */}
         <nav className="w-full bg-white flex items-center justify-between px-8 py-4 border-b border-gray-200">
           {/* Link the P4SBU text back to the home page */}
