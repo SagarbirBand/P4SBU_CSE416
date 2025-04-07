@@ -66,6 +66,8 @@ app.post('/buildings/createBuilding', async (req, res) => {
 
 
 
+
+
 /* FINES API CODE START */
 
 //Select all fines given a user ID
