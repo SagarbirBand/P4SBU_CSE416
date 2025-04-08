@@ -6,8 +6,6 @@ import FormInput from '../components/FormInput';
 import FormTextArea from '../components/FormTextArea';
 
 export default function ContactPage() {
-  
-  // Use one state object to hold all form data
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -42,11 +40,11 @@ export default function ContactPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+    <main className="relative min-h-screen flex items-center justify-center p-4">
       <BGIMG url="/map-bg.jpg" />
       <form
         onSubmit={handleSubmit}
-        className="relative z-10 bg-white p-6 rounded shadow-md w-full max-w-lg"
+        className="relative z-10 bg-white p-6 rounded shadow-md w-full max-w-lg text-black"
       >
         <h1 className="text-2xl font-bold mb-4">Contact Us</h1>
         {status && <p className="mb-4">{status}</p>}

@@ -11,7 +11,7 @@ export default function Home() {
           Welcome to P4SBU Parking System
         </h1>
         <p className="mb-6 text-black">
-          Reserve your parking spot at Stony Brook University easily!
+          Easily reserve your parking spot at Stony Brook University!
         </p>
         <div className="flex justify-center space-x-4">
           <Link
@@ -19,11 +19,6 @@ export default function Home() {
             className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-700"
           >
             Reserve Now
-          </Link>
-        </div>
-        <div className="mt-8">
-          <Link href="/contact" className="text-blue-500 hover:text-blue-700">
-            Contact Us
           </Link>
         </div>
       </div>

@@ -2,6 +2,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import BGIMG from '../components/BGIMG';
 import FormInput from '../components/FormInput';
 
@@ -92,6 +93,15 @@ export default function RegisterPage() {
         >
           Register
         </button>
+        <p className="mt-4 text-center">
+          Already have an account?{' '}
+          <Link
+            href="/login"
+            className="text-blue-600 hover:underline"
+          >
+            Login
+          </Link>
+        </p>
       </form>
     </main>
   );
