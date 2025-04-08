@@ -12,8 +12,8 @@ export default function RegisterPage() {
   const [fullName, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [permit, setPermit] = useState('');
-  const [license, setLicense] = useState('');
+  const [permitType, setPermit] = useState('');
+  const [licensePlate, setLicense] = useState('');
   const [address, setAddress] = useState('');
   const [error, setError] = useState('');
 
@@ -24,11 +24,11 @@ export default function RegisterPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name,
+          fullName,
           email,
           password,
-          permit,
-          license,
+          permitType,
+          licensePlate,
           address,
         }),
       });
@@ -82,23 +82,25 @@ export default function RegisterPage() {
           </label>
           <select
             id="permit"
-            value={permit}
+            value={permitType}
             onChange={(e) => setPermit(e.target.value)}
             required
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 bg-white"
           >
             <option value="">Select a permit</option>
-            <option value="resident">Resident</option>
-            <option value="commuter">Commuter</option>
-            <option value="visitor">Visitor</option>
-            <option value="employee">Employee</option>
-            <option value="other">Other</option>
+            <option value="Resident">Resident</option>
+            <option value="Commuter">Commuter</option>
+            <option value="Commuter Premium">Commuter Premium</option>
+            <option value="Faculty/Staff">Faculty/Staff</option>
+            <option value="ADA">ADA</option>
+            <option value="Other/Misc.">Other/Misc.</option>
+            <option value="None">None</option>
           </select>
           <FormInput
             label="License"
             name="license"
             type="text"
-            value={license}
+            value={licensePlate}
             onChange={(e) => setLicense(e.target.value)}
             required
           />
