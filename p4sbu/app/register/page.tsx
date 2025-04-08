@@ -2,7 +2,8 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import BGIMG from '../components/bg_image.tsx';
+import BGIMG from '../components/BGIMG';
+import FormInput from '../components/FormInput';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -16,7 +17,7 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({...formData, [e.target.name]: e.target.value });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -34,72 +35,61 @@ export default function RegisterPage() {
         setError(data.message || 'Registration failed');
       }
     } catch (err) {
+      console.error('Registration error:', err);
       setError('An unexpected error occurred');
     }
   };
 
   return (
     <main className="relative min-h-screen flex flex-col items-center justify-center">
-      <BGIMG url='/map-bg.jpg' />
-      <form onSubmit={handleRegister} className="text-black bg-white p-6 rounded shadow-md w-full max-w-md z-10">
+      <BGIMG url="/map-bg.jpg" />
+      <form
+        onSubmit={handleRegister}
+        className="relative z-10 text-black bg-white p-6 rounded shadow-md w-full max-w-md"
+      >
         <h2 className="text-2xl font-bold mb-4">Register</h2>
         {error && <p className="text-red-500 mb-4">{error}</p>}
-        <label className="block mb-2">
-          First Name:
-          <input
-            type="text"
-            name="firstName"
-            className="mt-1 p-2 border rounded w-full"
-            value={formData.firstName}
-            onChange={handleChange}
-            required
-          />
-        </label>
-        <label className="block mb-2">
-          Last Name:
-          <input
-            type="text"
-            name="lastName"
-            className="mt-1 p-2 border rounded w-full"
-            value={formData.lastName}
-            onChange={handleChange}
-            required
-          />
-        </label>
-        <label className="block mb-2">
-          Email:
-          <input
-            type="email"
-            name="email"
-            className="mt-1 p-2 border rounded w-full"
-            value={formData.email}
-            onChange={handleChange}
-            required
-          />
-        </label>
-        <label className="block mb-2">
-          Display Name:
-          <input
-            type="text"
-            name="displayName"
-            className="mt-1 p-2 border rounded w-full"
-            value={formData.displayName}
-            onChange={handleChange}
-            required
-          />
-        </label>
-        <label className="block mb-4">
-          Password:
-          <input
-            type="password"
-            name="password"
-            className="mt-1 p-2 border rounded w-full"
-            value={formData.password}
-            onChange={handleChange}
-            required
-          />
-        </label>
-        <button type="submit" className="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700">
+        <FormInput
+          label="First Name:"
+          name="firstName"
+          value={formData.firstName}
+          onChange={handleChange}
+          required
+        />
+        <FormInput
+          label="Last Name:"
+          name="lastName"
+          value={formData.lastName}
+          onChange={handleChange}
+          required
+        />
+        <FormInput
+          label="Email:"
+          type="email"
+          name="email"
+          value={formData.email}
+          onChange={handleChange}
+          required
+        />
+        <FormInput
+          label="Display Name:"
+          name="displayName"
+          value={formData.displayName}
+          onChange={handleChange}
+          required
+        />
+        <FormInput
+          label="Password:"
+          type="password"
+          name="password"
+          value={formData.password}
+          onChange={handleChange}
+          required
+        />
+        <button
+          type="submit"
+          className="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700"
+        >
           Register
         </button>
       </form>

@@ -1,12 +1,26 @@
 // app/contact/page.tsx
 'use client';
 import { useState } from 'react';
+import BGIMG from '../components/BGIMG';
+import FormInput from '../components/FormInput';
+import FormTextArea from '../components/FormTextArea';
 
 export default function ContactPage() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
+  
+  // Use one state object to hold all form data
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    message: '',
+  });
   const [status, setStatus] = useState('');
+
+  // Universal change handler for both inputs and textareas
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -14,13 +28,11 @@ export default function ContactPage() {
       const res = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, message }),
+        body: JSON.stringify(formData),
       });
       if (res.ok) {
         setStatus('Message sent successfully!');
-        setName('');
-        setEmail('');
-        setMessage('');
+        setFormData({ name: '', email: '', message: '' });
       } else {
         setStatus('Failed to send message.');
       }
@@ -31,39 +43,39 @@ export default function ContactPage() {
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow-md w-full max-w-lg">
+      <BGIMG url="/map-bg.jpg" />
+      <form
+        onSubmit={handleSubmit}
+        className="relative z-10 bg-white p-6 rounded shadow-md w-full max-w-lg"
+      >
         <h1 className="text-2xl font-bold mb-4">Contact Us</h1>
         {status && <p className="mb-4">{status}</p>}
-        <label className="block mb-2">
-          Name:
-          <input
-            type="text"
-            className="mt-1 p-2 border rounded w-full"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-        </label>
-        <label className="block mb-2">
-          Email:
-          <input
-            type="email"
-            className="mt-1 p-2 border rounded w-full"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </label>
-        <label className="block mb-4">
-          Message:
-          <textarea
-            className="mt-1 p-2 border rounded w-full"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            required
-          />
-        </label>
-        <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">
+        <FormInput
+          label="Name:"
+          name="name"
+          value={formData.name}
+          onChange={handleChange}
+          required
+        />
+        <FormInput
+          label="Email:"
+          type="email"
+          name="email"
+          value={formData.email}
+          onChange={handleChange}
+          required
+        />
+        <FormTextArea
+          label="Message:"
+          name="message"
+          value={formData.message}
+          onChange={handleChange}
+          required
+        />
+        <button
+          type="submit"
+          className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
+        >
           Send Message
         </button>
       </form>

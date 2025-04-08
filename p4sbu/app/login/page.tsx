@@ -2,14 +2,17 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import BGIMG from "../components/bg_image.tsx";
+import BGIMG from '../components/BGIMG';
+import FormInput from '../components/FormInput';
 
 export default function LoginPage() {
-
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCredentials({ ...credentials, [e.target.name]: e.target.value });
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,7 +20,7 @@ export default function LoginPage() {
       const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(credentials),
       });
       if (res.ok) {
         router.push('/dashboard');
@@ -26,37 +29,40 @@ export default function LoginPage() {
         setError(data.message || 'Login failed');
       }
     } catch (err) {
+      console.error('Login error:', err);
       setError('An unexpected error occurred');
     }
   };
 
   return (
     <main className="relative min-h-screen flex flex-col items-center justify-center">
-      <BGIMG url='/map-bg.jpg' />
-      <form onSubmit={handleLogin} className="text-black bg-white p-6 rounded shadow-md w-full max-w-md z-10">
+      <BGIMG url="/map-bg.jpg" />
+      <form
+        onSubmit={handleLogin}
+        className="relative z-10 text-black bg-white p-6 rounded shadow-md w-full max-w-md"
+      >
         <h2 className="text-2xl font-bold mb-4">Login</h2>
         {error && <p className="text-red-500 mb-4">{error}</p>}
-        <label className="block mb-2">
-          Email:
-          <input
-            type="email"
-            className="mt-1 p-2 border rounded w-full"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </label>
-        <label className="block mb-4">
-          Password:
-          <input
-            type="password"
-            className="mt-1 p-2 border rounded w-full"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </label>
-        <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">
+        <FormInput
+          label="Email:"
+          type="email"
+          name="email"
+          value={credentials.email}
+          onChange={handleChange}
+          required
+        />
+        <FormInput
+          label="Password:"
+          type="password"
+          name="password"
+          value={credentials.password}
+          onChange={handleChange}
+          required
+        />
+        <button
+          type="submit"
+          className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
+        >
           Login
         </button>
       </form>
