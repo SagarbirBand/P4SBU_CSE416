@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { supabase } from '../../lib/db.js';
 import { NextResponse } from 'next/server';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
+const JWT_SECRET = process.env.NEXT_PUBLIC_JWT_SECRET;
 
 export async function POST(request) {
   const { email, password } = await request.json();
