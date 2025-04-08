@@ -1,6 +1,5 @@
-// app/login/page.tsx
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import BGIMG from '../components/BGIMG';
@@ -8,18 +7,38 @@ import FormInput from '../components/FormInput';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [credentials, setCredentials] = useState({ email: '', password: '' });
+  const [credentials, setCredentials] = useState({ email: '', password: '', stayLoggedIn: false });
   const [error, setError] = useState('');
 
+  // On mount, check if the user is already logged in
+  useEffect(() => {
+    async function checkLogin() {
+      try {
+        const res = await fetch('/api/login', { method: 'GET' });
+        const data = await res.json();
+        if (data.loggedIn) {
+          router.push('/dashboard');
+        }
+      } catch (err) {
+        console.error('Error checking login status', err);
+      }
+    }
+    checkLogin();
+  }, [router]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCredentials({ ...credentials, [e.target.name]: e.target.value });
+    const { name, value, type, checked } = e.target;
+    setCredentials((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const res = await fetch('/api/login', {
-        method: 'POST',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(credentials),
       });
@@ -60,6 +79,16 @@ export default function LoginPage() {
           onChange={handleChange}
           required
         />
+        <label className="block mb-4">
+          <input
+            type="checkbox"
+            name="stayLoggedIn"
+            checked={credentials.stayLoggedIn}
+            onChange={handleChange}
+            className="mr-2"
+          />
+          Stay logged in
+        </label>
         <button
           type="submit"
           className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
@@ -68,10 +97,7 @@ export default function LoginPage() {
         </button>
         <p className="mt-4 text-center">
           Don't have an account?{' '}
-          <Link
-            href="/register"
-            className="text-blue-600 hover:text-blue-700"
-          >
+          <Link href="/register" className="text-blue-600 hover:text-blue-700">
             Register
           </Link>
         </p>
