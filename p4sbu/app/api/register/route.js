@@ -3,14 +3,14 @@ import { NextResponse } from 'next/server';
 import bcrypt from 'bcrypt';
 
 export async function POST(request) {
-  const { name, email, password, permitType, licensePlate, address } = await request.json();
+  const { fullName, email, password, permitType, licensePlate, address } = await request.json();
 
-  if (!name || !email || !password || !permitType || !licensePlate || !address) {
+  if (!fullName || !email || !password || !permitType || !licensePlate || !address) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
   const passBcrypt = await bcrypt.hash(password, 12);
-
+  let name = fullName
 
   try {
     const { data, error } = await supabase
