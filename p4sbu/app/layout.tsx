@@ -2,6 +2,8 @@
 import Link from "next/link";
 import "./globals.css";
 
+// TODO: Add footer
+
 export const metadata = {
   title: "P4SBU",
   description: "Parking Website",

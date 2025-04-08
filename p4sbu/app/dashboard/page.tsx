@@ -1,12 +1,29 @@
-// app/dashboard/page.tsx
 'use client';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import BGIMG from '../components/BGIMG';
 
-// TODO: If admin, add lot management page to nav
-// TODO: If not logged in, page must redirect to login WITHOUT RENDERING ANYTHING BEFOREHAND
-
 export default function Dashboard() {
+  const router = useRouter();
+
+  // On mount, check if the user is logged in. If not, redirect to login.
+  useEffect(() => {
+    async function checkLogin() {
+      try {
+        const res = await fetch('/api/login', { method: 'GET' });
+        const data = await res.json();
+        if (!data.loggedIn) {
+          router.push('/login');
+        }
+      } catch (error) {
+        console.error('Error checking login status', error);
+        router.push('/login');
+      }
+    }
+    checkLogin();
+  }, [router]);
+
   return (
     <main className="relative min-h-screen flex items-center justify-center bg-gray-100">
       <BGIMG url="/sbu-tree.jpg" />
