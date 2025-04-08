@@ -34,31 +34,55 @@ export default function LoginPage() {
   return (
     <main className="relative min-h-screen flex flex-col items-center justify-center">
       {/* <BGIMG url='/map-bg.jpg' /> */}
-      <form onSubmit={handleLogin} className="bg-white p-6 rounded shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-4">Login</h2>
-        {error && <p className="text-red-500 mb-4">{error}</p>}
-        <label className="block mb-2">
-          Email:
-          <input
+
+
+
+      <form 
+        onSubmit={handleLogin} 
+        className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md space-y-6"
+      >
+        <h2 className="text-2xl font-bold text-gray-800">Login</h2>
+
+        {error && (
+          <p className="text-red-600 bg-red-100 px-4 py-2 rounded">{error}</p>
+        )}
+
+        {/* Email Field */}
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+            Email Address
+          </label>
+          <input 
+            id="email"
             type="email"
-            className="mt-1 p-2 border rounded w-full"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
           />
-        </label>
-        <label className="block mb-4">
-          Password:
-          <input
+        </div>
+
+        {/* Password Field */}
+        <div>
+          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+            Password
+          </label>
+          <input 
+            id="password"
             type="password"
-            className="mt-1 p-2 border rounded w-full"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
           />
-        </label>
-        <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">
-          Login
+        </div>
+
+        {/* Submit Button */}
+        <button
+          type="submit"
+          className="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-700 transition"
+        >
+          Sign In
         </button>
       </form>
     </main>

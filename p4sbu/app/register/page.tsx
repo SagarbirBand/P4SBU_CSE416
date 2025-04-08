@@ -6,29 +6,32 @@ import BGIMG from '../components/bg_image.tsx';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    displayName: '',
-    password: '',
-  });
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [permitType, setPermit] = useState('');
+  const [licensePlate, setLicense] = useState('');
+  const [address, setAddress] = useState('');
   const [error, setError] = useState('');
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({...formData, [e.target.name]: e.target.value });
-  };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch('/api/auth/register', {
+      const res = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          permitType,
+          licensePlate,
+          address,
+        }),
       });
+  
       if (res.ok) {
-        router.push('/login');
+        router.push('/dashboard');
       } else {
         const data = await res.json();
         setError(data.message || 'Registration failed');
@@ -39,68 +42,120 @@ export default function RegisterPage() {
   };
 
   return (
-    <main className="relative min-h-screen flex flex-col items-center justify-center">
-      <BGIMG url='/map-bg.jpg' />
-      <form onSubmit={handleRegister} className="bg-white p-6 rounded shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-4">Register</h2>
-        {error && <p className="text-red-500 mb-4">{error}</p>}
-        <label className="block mb-2">
-          First Name:
+    <main className="relative min-h-screen flex flex-col items-center justify-center text-black">
+      <form 
+        onSubmit={handleRegister} 
+        className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md space-y-6"
+      >
+        <h2 className="text-2xl font-bold text-gray-800">Register</h2>
+
+        {error && (
+          <p className="text-red-600 bg-red-100 px-4 py-2 rounded">{error}</p>
+        )}
+
+        {/* Name */}
+        <div>
+          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+            Full Name
+          </label>
           <input
+            id="name"
             type="text"
-            name="firstName"
-            className="mt-1 p-2 border rounded w-full"
-            value={formData.firstName}
-            onChange={handleChange}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             required
+            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
           />
-        </label>
-        <label className="block mb-2">
-          Last Name:
+        </div>
+
+        {/* Email */}
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+            Email Address
+          </label>
           <input
-            type="text"
-            name="lastName"
-            className="mt-1 p-2 border rounded w-full"
-            value={formData.lastName}
-            onChange={handleChange}
-            required
-          />
-        </label>
-        <label className="block mb-2">
-          Email:
-          <input
+            id="email"
             type="email"
-            name="email"
-            className="mt-1 p-2 border rounded w-full"
-            value={formData.email}
-            onChange={handleChange}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
+            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
           />
-        </label>
-        <label className="block mb-2">
-          Display Name:
+        </div>
+
+        {/* Password */}
+        <div>
+          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+            Password
+          </label>
           <input
-            type="text"
-            name="displayName"
-            className="mt-1 p-2 border rounded w-full"
-            value={formData.displayName}
-            onChange={handleChange}
-            required
-          />
-        </label>
-        <label className="block mb-4">
-          Password:
-          <input
+            id="password"
             type="password"
-            name="password"
-            className="mt-1 p-2 border rounded w-full"
-            value={formData.password}
-            onChange={handleChange}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             required
+            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
           />
-        </label>
-        <button type="submit" className="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700">
-          Register
+        </div>
+
+        {/* Permit Type */}
+        <div>
+          <label htmlFor="permit" className="block text-sm font-medium text-gray-700 mb-1">
+            Permit Type
+          </label>
+          <select
+            id="permit"
+            value={permitType}
+            onChange={(e) => setPermit(e.target.value)}
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 bg-white"
+          >
+            <option value="">Select a permit</option>
+            <option value="resident">Resident</option>
+            <option value="commuter">Commuter</option>
+            <option value="faculty/staff">Faculty/Staff</option>
+            <option value="ada">ADA</option>
+            <option value="other/misc">Other/Misc.</option>
+            <option value="none">None</option>
+          </select>
+        </div>
+
+        {/* License Plate */}
+        <div>
+          <label htmlFor="license" className="block text-sm font-medium text-gray-700 mb-1">
+            License Plate
+          </label>
+          <input
+            id="license"
+            type="text"
+            value={licensePlate}
+            onChange={(e) => setLicense(e.target.value)}
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        {/* Address */}
+        <div>
+          <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
+            Address
+          </label>
+          <input
+            id="address"
+            type="text"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        {/* Submit Button */}
+        <button
+          type="submit"
+          className="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-700 transition"
+        >
+          Create Account
         </button>
       </form>
     </main>
