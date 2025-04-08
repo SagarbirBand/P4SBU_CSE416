@@ -1,13 +1,11 @@
 // app/page.tsx
 import Link from 'next/link';
+import BGIMG from './components/bg_image.tsx';
 
 export default function Home() {
   return (
     <main className="relative min-h-screen flex flex-col items-center justify-center">
-      <div
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: "url('/map-bg.jpg')", opacity: 0.25 }}
-      />
+      <BGIMG url='/map-bg.jpg' />
       {/* Content */}
       <div className="relative z-10 text-center">
         <h1 className="text-4xl font-bold mb-4 text-red-500">Welcome to P4SBU Parking System</h1>

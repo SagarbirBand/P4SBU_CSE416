@@ -2,6 +2,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import BGIMG from '../components/bg_image.tsx';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -38,7 +39,8 @@ export default function RegisterPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gray-100">
+    <main className="relative min-h-screen flex flex-col items-center justify-center">
+      <BGIMG url='/map-bg.jpg' />
       <form onSubmit={handleRegister} className="bg-white p-6 rounded shadow-md w-full max-w-md">
         <h2 className="text-2xl font-bold mb-4">Register</h2>
         {error && <p className="text-red-500 mb-4">{error}</p>}
