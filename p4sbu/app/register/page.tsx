@@ -2,161 +2,106 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import BGIMG from '../components/bg_image.tsx';
+import Link from 'next/link';
+import BGIMG from '../components/BGIMG';
+import FormInput from '../components/FormInput';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [permitType, setPermit] = useState('');
-  const [licensePlate, setLicense] = useState('');
-  const [address, setAddress] = useState('');
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    displayName: '',
+    password: '',
+  });
   const [error, setError] = useState('');
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch('/api/register', {
+      const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          email,
-          password,
-          permitType,
-          licensePlate,
-          address,
-        }),
+        body: JSON.stringify(formData),
       });
-  
       if (res.ok) {
-        router.push('/dashboard');
+        router.push('/login');
       } else {
         const data = await res.json();
         setError(data.message || 'Registration failed');
       }
     } catch (err) {
+      console.error('Registration error:', err);
       setError('An unexpected error occurred');
     }
   };
 
   return (
-    <main className="relative min-h-screen flex flex-col items-center justify-center text-black">
-      <form 
-        onSubmit={handleRegister} 
-        className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md space-y-6"
+    <main className="relative min-h-screen flex flex-col items-center justify-center">
+      <BGIMG url="/map-bg.jpg" />
+      <form
+        onSubmit={handleRegister}
+        className="relative z-10 text-black bg-white p-6 rounded shadow-md w-full max-w-md"
       >
-        <h2 className="text-2xl font-bold text-gray-800">Register</h2>
-
-        {error && (
-          <p className="text-red-600 bg-red-100 px-4 py-2 rounded">{error}</p>
-        )}
-
-        {/* Name */}
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-            Full Name
-          </label>
-          <input
-            id="name"
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        {/* Email */}
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-            Email Address
-          </label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        {/* Password */}
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        {/* Permit Type */}
-        <div>
-          <label htmlFor="permit" className="block text-sm font-medium text-gray-700 mb-1">
-            Permit Type
-          </label>
-          <select
-            id="permit"
-            value={permitType}
-            onChange={(e) => setPermit(e.target.value)}
-            required
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 bg-white"
-          >
-            <option value="">Select a permit</option>
-            <option value="resident">Resident</option>
-            <option value="commuter">Commuter</option>
-            <option value="faculty/staff">Faculty/Staff</option>
-            <option value="ada">ADA</option>
-            <option value="other/misc">Other/Misc.</option>
-            <option value="none">None</option>
-          </select>
-        </div>
-
-        {/* License Plate */}
-        <div>
-          <label htmlFor="license" className="block text-sm font-medium text-gray-700 mb-1">
-            License Plate
-          </label>
-          <input
-            id="license"
-            type="text"
-            value={licensePlate}
-            onChange={(e) => setLicense(e.target.value)}
-            required
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        {/* Address */}
-        <div>
-          <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
-            Address
-          </label>
-          <input
-            id="address"
-            type="text"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            required
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        {/* Submit Button */}
+        <h2 className="text-2xl font-bold mb-4">Register</h2>
+        {error && <p className="text-red-500 mb-4">{error}</p>}
+        <FormInput
+          label="First Name:"
+          name="firstName"
+          value={formData.firstName}
+          onChange={handleChange}
+          required
+        />
+        <FormInput
+          label="Last Name:"
+          name="lastName"
+          value={formData.lastName}
+          onChange={handleChange}
+          required
+        />
+        <FormInput
+          label="Email:"
+          type="email"
+          name="email"
+          value={formData.email}
+          onChange={handleChange}
+          required
+        />
+        <FormInput
+          label="Display Name:"
+          name="displayName"
+          value={formData.displayName}
+          onChange={handleChange}
+          required
+        />
+        <FormInput
+          label="Password:"
+          type="password"
+          name="password"
+          value={formData.password}
+          onChange={handleChange}
+          required
+        />
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-700 transition"
+          className="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700"
         >
-          Create Account
+          Register
         </button>
+        <p className="mt-4 text-center">
+          Already have an account?{' '}
+          <Link
+            href="/login"
+            className="text-blue-600 hover:underline"
+          >
+            Login
+          </Link>
+        </p>
       </form>
     </main>
   );

@@ -1,16 +1,19 @@
 // app/login/page.tsx
 'use client';
-import supabase from "../lib/db.js"
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import BGIMG from "../components/bg_image.tsx";
+import Link from 'next/link';
+import BGIMG from '../components/BGIMG';
+import FormInput from '../components/FormInput';
 
 export default function LoginPage() {
-
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCredentials({ ...credentials, [e.target.name]: e.target.value });
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,7 +21,7 @@ export default function LoginPage() {
       const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(credentials),
       });
       if (res.ok) {
         router.push('/dashboard');
@@ -27,63 +30,51 @@ export default function LoginPage() {
         setError(data.message || 'Login failed');
       }
     } catch (err) {
+      console.error('Login error:', err);
       setError('An unexpected error occurred');
     }
   };
 
   return (
     <main className="relative min-h-screen flex flex-col items-center justify-center">
-      {/* <BGIMG url='/map-bg.jpg' /> */}
-
-
-
-      <form 
-        onSubmit={handleLogin} 
-        className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md space-y-6"
+      <BGIMG url="/map-bg.jpg" />
+      <form
+        onSubmit={handleLogin}
+        className="relative z-10 text-black bg-white p-6 rounded shadow-md w-full max-w-md"
       >
-        <h2 className="text-2xl font-bold text-gray-800">Login</h2>
-
-        {error && (
-          <p className="text-red-600 bg-red-100 px-4 py-2 rounded">{error}</p>
-        )}
-
-        {/* Email Field */}
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-            Email Address
-          </label>
-          <input 
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
-          />
-        </div>
-
-        {/* Password Field */}
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-            Password
-          </label>
-          <input 
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
-          />
-        </div>
-
-        {/* Submit Button */}
+        <h2 className="text-2xl font-bold mb-4">Login</h2>
+        {error && <p className="text-red-500 mb-4">{error}</p>}
+        <FormInput
+          label="Email:"
+          type="email"
+          name="email"
+          value={credentials.email}
+          onChange={handleChange}
+          required
+        />
+        <FormInput
+          label="Password:"
+          type="password"
+          name="password"
+          value={credentials.password}
+          onChange={handleChange}
+          required
+        />
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-700 transition"
+          className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
         >
-          Sign In
+          Login
         </button>
+        <p className="mt-4 text-center">
+          Don't have an account?{' '}
+          <Link
+            href="/register"
+            className="text-blue-600 hover:underline"
+          >
+            Register
+          </Link>
+        </p>
       </form>
     </main>
   );

@@ -15,9 +15,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-white">
-        {/* NAVBAR */}
+        {/* TODO: We need to figure out a way to make the navbar dynamic without forcing every page to use "use-client" */}
         <nav className="w-full bg-white flex items-center justify-between px-8 py-4 border-b border-gray-200">
-          {/* Link the P4SBU text back to the home page */}
           <Link href="/" className="text-2xl font-bold text-red-600">
             P4SBU
           </Link>
@@ -42,8 +41,6 @@ export default function RootLayout({
             </Link>
           </div>
         </nav>
-
-        {/* Page Content */}
         {children}
       </body>
     </html>
