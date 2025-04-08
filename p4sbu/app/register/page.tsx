@@ -77,15 +77,14 @@ export default function RegisterPage() {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
-        <label htmlFor="permit" className="block text-sm font-medium text-gray-700 mb-1">
-            Permit Type
-          </label>
+        <label htmlFor="permit" className="block mb-4">
+            <span className='text-gray-700'>Permit Type</span>
           <select
             id="permit"
             value={permitType}
             onChange={(e) => setPermit(e.target.value)}
             required
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 bg-white"
+            className="w-full border mt-1 p-2 rounded"
           >
             <option value="">Select a permit</option>
             <option value="Resident">Resident</option>
@@ -96,22 +95,23 @@ export default function RegisterPage() {
             <option value="Other/Misc.">Other/Misc.</option>
             <option value="None">None</option>
           </select>
-          <FormInput
-            label="License"
-            name="license"
-            type="text"
-            value={licensePlate}
-            onChange={(e) => setLicense(e.target.value)}
-            required
-          />
-          <FormInput
-            label="Address"
-            name="address"
-            type="text"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            required
-          />
+        </label>
+        <FormInput
+          label="License"
+          name="license"
+          type="text"
+          value={licensePlate}
+          onChange={(e) => setLicense(e.target.value)}
+          required
+        />
+        <FormInput
+          label="Address"
+          name="address"
+          type="text"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          required
+        />
         <button
           type="submit"
           className="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700"
@@ -122,7 +122,7 @@ export default function RegisterPage() {
           Already have an account?{' '}
           <Link
             href="/login"
-            className="text-blue-600 hover:underline"
+            className="text-blue-600 hover:text-blue-700"
           >
             Login
           </Link>
