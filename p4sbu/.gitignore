@@ -42,3 +42,6 @@ next-env.d.ts
 
 # Help file for ourselves, not needed in repo
 next_info.md
+
+# Preventing VScode options from syncing 
+/.vscode
