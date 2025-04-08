@@ -6,37 +6,40 @@ import Link from 'next/link';
 import BGIMG from '../components/BGIMG';
 import FormInput from '../components/FormInput';
 
+
 export default function RegisterPage() {
   const router = useRouter();
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    displayName: '',
-    password: '',
-  });
+  const [fullName, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [permit, setPermit] = useState('');
+  const [license, setLicense] = useState('');
+  const [address, setAddress] = useState('');
   const [error, setError] = useState('');
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch('/api/auth/register', {
+      const res = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          permit,
+          license,
+          address,
+        }),
       });
+  
       if (res.ok) {
-        router.push('/login');
+        router.push('/dashboard');
       } else {
         const data = await res.json();
         setError(data.message || 'Registration failed');
       }
     } catch (err) {
-      console.error('Registration error:', err);
       setError('An unexpected error occurred');
     }
   };
@@ -51,42 +54,62 @@ export default function RegisterPage() {
         <h2 className="text-2xl font-bold mb-4">Register</h2>
         {error && <p className="text-red-500 mb-4">{error}</p>}
         <FormInput
-          label="First Name:"
-          name="firstName"
-          value={formData.firstName}
-          onChange={handleChange}
-          required
-        />
+            label="Name"
+            name="name"
+            type="text"
+            value={fullName}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
         <FormInput
-          label="Last Name:"
-          name="lastName"
-          value={formData.lastName}
-          onChange={handleChange}
-          required
-        />
+            label="Email:"
+            type="email"
+            name="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
         <FormInput
-          label="Email:"
-          type="email"
-          name="email"
-          value={formData.email}
-          onChange={handleChange}
-          required
-        />
-        <FormInput
-          label="Display Name:"
-          name="displayName"
-          value={formData.displayName}
-          onChange={handleChange}
-          required
-        />
-        <FormInput
-          label="Password:"
-          type="password"
-          name="password"
-          value={formData.password}
-          onChange={handleChange}
-          required
-        />
+            label="Password:"
+            type="password"
+            name="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        <label htmlFor="permit" className="block text-sm font-medium text-gray-700 mb-1">
+            Permit Type
+          </label>
+          <select
+            id="permit"
+            value={permit}
+            onChange={(e) => setPermit(e.target.value)}
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 bg-white"
+          >
+            <option value="">Select a permit</option>
+            <option value="resident">Resident</option>
+            <option value="commuter">Commuter</option>
+            <option value="visitor">Visitor</option>
+            <option value="employee">Employee</option>
+            <option value="other">Other</option>
+          </select>
+          <FormInput
+            label="License"
+            name="license"
+            type="text"
+            value={license}
+            onChange={(e) => setLicense(e.target.value)}
+            required
+          />
+          <FormInput
+            label="Address"
+            name="address"
+            type="text"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            required
+          />
         <button
           type="submit"
           className="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700"
