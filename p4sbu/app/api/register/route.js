@@ -1,5 +1,5 @@
 // app/api/register/route.js
-import { supabase } from '../../lib/db.js';
+import { supabase } from '../../../lib/db.js';
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
@@ -33,7 +33,6 @@ export async function POST(request) {
       return NextResponse.json({ error: 'User registration failed' }, { status: 500 });
 
     const newUser = data[0];
-    console.log(newUser); // TODO: Remove when we verify this works
     const token = jwt.sign({ id: newUser.id, name: newUser.name }, JWT_SECRET, { expiresIn: '7d' });
 
     const res = NextResponse.json({ message: 'User registered successfully' });
