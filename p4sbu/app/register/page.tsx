@@ -16,7 +16,7 @@ export default function RegisterPage() {
   const [licensePlate, setLicense] = useState('');
   const [address, setAddress] = useState('');
   const [error, setError] = useState('');
-
+/*
   useEffect(() => {
     async function checkLogin() {
       try {
@@ -30,7 +30,7 @@ export default function RegisterPage() {
       }
     }
     checkLogin();
-  }, [router]);
+  }, [router]);*/
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
