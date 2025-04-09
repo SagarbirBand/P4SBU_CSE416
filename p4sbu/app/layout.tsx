@@ -2,6 +2,8 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import "./globals.css";
+import RefreshHandler from './components/RefreshHandler';
+import LogoutButton from './components/LogoutButton';
 
 export const metadata = {
   title: "P4SBU",
@@ -20,6 +22,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-white">
+        <RefreshHandler />
         <nav className="w-full bg-white flex items-center justify-between px-8 py-4 border-b border-gray-200">
           <Link href="/" className="text-2xl font-bold text-red-600">
             P4SBU
@@ -33,12 +36,7 @@ export default function RootLayout({
                 <Link href="/reserve" className="text-black hover:text-red-600">
                   Reserve
                 </Link>
-                <Link
-                  href="/api/logout"
-                  className="bg-gray-200 text-black px-4 py-2 rounded hover:bg-gray-300"
-                >
-                  Log Out
-                </Link>
+                <LogoutButton />
               </>
             ) : (
               <>

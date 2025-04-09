@@ -4,7 +4,7 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const origin = url.origin;
 
-  const res = NextResponse.redirect(`localhost:3000/`);
+  const res = NextResponse.redirect(`${origin}/`);
 
   res.cookies.set('token', '', {
     httpOnly: true,
