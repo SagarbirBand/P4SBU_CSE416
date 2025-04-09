@@ -23,8 +23,8 @@ export default function RootLayout({
             P4SBU
           </Link>
           <div className="space-x-6">
-            <Link href="/about" className="text-black hover:text-red-600">
-              About Us
+            <Link href="/profile" className="text-black hover:text-red-600">
+              Profile
             </Link>
             <Link href="/contact" className="text-black hover:text-red-600">
               Contact
