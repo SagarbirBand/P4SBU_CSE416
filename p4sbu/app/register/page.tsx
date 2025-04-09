@@ -1,6 +1,6 @@
 // app/register/page.tsx
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import BGIMG from '../components/BGIMG';
@@ -16,6 +16,21 @@ export default function RegisterPage() {
   const [licensePlate, setLicense] = useState('');
   const [address, setAddress] = useState('');
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    async function checkLogin() {
+      try {
+        const res = await fetch('/api/login', { method: 'GET' });
+        const data = await res.json();
+        if (data.loggedIn) {
+          router.push('/dashboard');
+        }
+      } catch (err) {
+        console.error('Error checking login status', err);
+      }
+    }
+    checkLogin();
+  }, [router]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
