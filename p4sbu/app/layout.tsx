@@ -26,6 +26,9 @@ export default function RootLayout({
             <Link href="/profile" className="text-black hover:text-red-600">
               Profile
             </Link>
+            <Link href="/reserve" className="text-black hover:text-red-600">
+              Reserve
+            </Link>
             <Link href="/contact" className="text-black hover:text-red-600">
               Contact
             </Link>
