@@ -1,4 +1,4 @@
-import { supabase } from '../../../lib/db.js';
+import { supabase } from './db.js';
 import { NextResponse } from 'next/server';
 
 export async function POST(request) {
@@ -11,10 +11,17 @@ export async function POST(request) {
   try {
     const { data, error } = await supabase
       .from('payments')
-      .insert([{ userID, amount }]);
+      .insert([{ userID, amount }])
+      .select();
+    
     if (error) throw error;
+    
     return NextResponse.json(
-      { message: 'Payment registered successfully', user: data },
+      { 
+        message: 'Payment registered successfully', 
+        payment: data[0],
+        paymentID: data[0].id
+      },
       { status: 201 }
     );
   } catch (err) {

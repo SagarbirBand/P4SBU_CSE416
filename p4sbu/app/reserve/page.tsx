@@ -2,17 +2,22 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from 'next/navigation';
+
 
 type Lot = {
-  id?: number;
+  id: number;
   name: string;
-  // Include additional columns if your "parkingLots" table has them
 };
 
 export default function Reserve() {
   const [lots, setLots] = useState<Lot[]>([]);
+  //const [lotID, setLotID] = useState(Number);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
+  const [userID, setUserID] = useState(Number);
+  //const [spotID, setSpotID] = useState(Number);
+  //const [paymentID, setPaymentID] = useState(Number);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -20,7 +25,6 @@ export default function Reserve() {
       try {
         setLoading(true);
         setError("");
-        // IMPORTANT: Fetch from /api/parkingLots
         const res = await fetch("/api/parkingLots");
         if (!res.ok) {
           throw new Error("Failed to fetch parking lots");
@@ -42,11 +46,105 @@ export default function Reserve() {
     lot.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Stub function for "Reserve" button
-  function handleReserve(lotName: string) {
-    // In a real app, you'd call your reservation endpoint
-    alert(`Reserving lot: ${lotName}`);
-  }
+
+  const router = useRouter();
+  useEffect(() => {
+    async function fetchUserInfo() {
+      try {
+        const loginRes = await fetch('/api/login?includeUser=true');
+        const loginData = await loginRes.json();
+
+
+        if (!loginData.loggedIn) {
+          router.push('/login');
+          return;
+        }
+
+        const userIdent = loginData.user?.id;
+        if (!userIdent) {
+          throw new Error('User ID not found');
+        }
+
+        setUserID(userIdent);
+      } catch (error) {
+        console.error('Error fetching user info:', error);
+        router.push('/login');
+      }
+    }
+
+    fetchUserInfo();
+  }, [router]);
+
+
+  const handleReserve = async (selectedLotID: number) => {
+
+
+    //Grab spotID (for now we just use selected lotID)
+    let spotID = selectedLotID;
+    console.log("spotID valid");
+
+    //Set startTime to now and endTime to an hour from now
+    const curr = new Date();
+    const hrLater = new Date();
+    hrLater.setHours(hrLater.getHours() + 1);
+    const startTime = curr.toISOString();
+    const endTime = hrLater.toISOString();
+
+    //Call API to create a payment and get paymentID
+    let amount = 5.00;
+
+    try {
+      const res1 = await fetch('/api/payments/createPayment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userID,
+          amount
+        }),
+      });
+  
+      if (res1.ok) {
+        console.log("payment created");
+        const data = await res1.json();
+        let paymentID = data.paymentID;
+
+
+        //createReservationAPI called
+        try {
+          const res = await fetch('/api/reservations/createReservation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userID,
+              spotID,
+              paymentID,
+              startTime,
+              endTime,
+            }),
+          });
+      
+          if (res.ok) {
+            console.log("res.ok good");
+            router.push('/profile');
+          } else {
+            console.log(res.ok);
+            const data = await res.json();
+            setError(data.message || 'Registration failed');
+          }
+        } catch (err) {
+          setError('An unexpected error occurred createRes');
+        }
+
+
+      } else {
+        const data = await res1.json();
+        setError(data.message || 'Registration failed');
+      }
+    } catch (err) {
+      setError('An unexpected error occurred payment');
+    }
+
+  };
 
   return (
     <main className="min-h-screen p-8 bg-white">
@@ -88,7 +186,7 @@ export default function Reserve() {
                   {lot.name}
                 </span>
                 <button
-                  onClick={() => handleReserve(lot.name)}
+                  onClick={() => {handleReserve(lot.id);} }
                   className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
                 >
                   Reserve
