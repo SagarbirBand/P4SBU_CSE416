@@ -125,7 +125,7 @@ function ProfileField({
           onClick={onEdit}
           className="bg-black text-white rounded px-2 py-1 hover:bg-gray-800 ml-2"
         >
-          {editing ? "SAVE" : "ED"}
+          {editing ? "SAVE" : "Edit"}
         </button>
       </div>
     </div>
