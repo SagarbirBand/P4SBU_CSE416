@@ -16,8 +16,8 @@ export default function RegisterPage() {
   const [licensePlate, setLicense] = useState('');
   const [address, setAddress] = useState('');
   const [error, setError] = useState('');
-
-  /*useEffect(() => {
+/*
+  useEffect(() => {
     async function checkLogin() {
       try {
         const res = await fetch('/api/login', { method: 'GET' });
