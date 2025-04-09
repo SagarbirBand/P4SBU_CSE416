@@ -11,7 +11,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
 
   // On mount, check if the user is already logged in
-  useEffect(() => {
+  /*useEffect(() => {
     async function checkLogin() {
       try {
         const res = await fetch('/api/login', { method: 'GET' });
@@ -24,7 +24,7 @@ export default function LoginPage() {
       }
     }
     checkLogin();
-  }, [router]);
+  }, [router]);*/
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;

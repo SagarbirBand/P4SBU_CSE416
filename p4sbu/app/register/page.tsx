@@ -17,7 +17,7 @@ export default function RegisterPage() {
   const [address, setAddress] = useState('');
   const [error, setError] = useState('');
 
-  useEffect(() => {
+  /*useEffect(() => {
     async function checkLogin() {
       try {
         const res = await fetch('/api/login', { method: 'GET' });
@@ -30,7 +30,7 @@ export default function RegisterPage() {
       }
     }
     checkLogin();
-  }, [router]);
+  }, [router]);*/
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
