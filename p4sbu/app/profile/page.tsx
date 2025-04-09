@@ -1,8 +1,101 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+
+
+type Reservation = {
+  id: number;
+  userID: number;
+  spotID: number;
+  paymentID: number;
+  startTime: string; //timestamp
+  endTime: string; //timestamp
+};
 
 export default function ProfilePage() {
+
+
+  const router = useRouter();
+  const [userID, setUserID] = useState<number | null>(null);
+  const [reservations, setReservations] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  //console.log("check0");
+
+  useEffect(() => {
+    async function fetchUserInfo() {
+      //console.log("check4");
+      try {
+        //console.log("check1");
+        const loginRes = await fetch('/api/login?includeUser=true');
+        const loginData = await loginRes.json();
+
+        if (!loginData.loggedIn) {
+          router.push('/login');
+          return;
+        }
+
+        const userIdent = loginData.user?.id;
+        if (!userIdent) {
+          throw new Error('User ID not found');
+        }
+
+        console.log(userIdent);
+
+        setUserID(userIdent);
+      } catch (error) {
+        console.error('Error fetching user info:', error);
+        router.push('/login');
+      }
+    }
+
+    fetchUserInfo();
+  }, [router]);
+
+  useEffect(() => {
+    //console.log("check5");
+    async function fetchReservations() {
+      //console.log("check2");
+      if (!userID) return;
+
+      try {
+        setLoading(true);
+        const res = await fetch(`/api/reservations/user/${userID}`);
+        const data = await res.json();
+
+        if (res.ok) {
+          setReservations(data);
+          console.log(data);
+        } else {
+          //console.log("error");
+          console.error('Error fetching reservations:', data.error || 'Unknown error');
+          setReservations([]);
+        }
+      } catch (error) {
+        console.error('Error fetching reservations:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchReservations();
+  }, [userID]);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   const [formData, setFormData] = useState({
     email: "support@profilepress.net",
     name: "John Doe",
@@ -10,6 +103,7 @@ export default function ProfilePage() {
     permitType: "student",
     licensePlate: "",
     idNumber: "",
+
   });
 
   // Collapsible sections state: you can toggle each individually
@@ -42,10 +136,10 @@ export default function ProfilePage() {
 
   return (
     <main className="max-w-4xl mx-auto p-4">
-      {/* ACCOUNT SETTINGS FORM */}
+
       <h1 className="text-2xl font-bold text-black mb-6">Profile Page</h1>
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Email */}
+
         <div>
           <label
             htmlFor="email"
@@ -64,7 +158,7 @@ export default function ProfilePage() {
           />
         </div>
 
-        {/* Name */}
+   
         <div>
           <label
             htmlFor="name"
@@ -83,7 +177,7 @@ export default function ProfilePage() {
           />
         </div>
 
-        {/* Password */}
+
         <div>
           <label
             htmlFor="password"
@@ -102,7 +196,6 @@ export default function ProfilePage() {
           />
         </div>
 
-        {/* Permit Type (Dropdown) */}
         <div>
           <label
             htmlFor="permitType"
@@ -125,7 +218,6 @@ export default function ProfilePage() {
           </select>
         </div>
 
-        {/* License Plate */}
         <div>
           <label
             htmlFor="licensePlate"
@@ -144,25 +236,6 @@ export default function ProfilePage() {
           />
         </div>
 
-        {/* ID Number */}
-        <div>
-          <label
-            htmlFor="idNumber"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            ID Number
-          </label>
-          <input
-            type="text"
-            id="idNumber"
-            name="idNumber"
-            value={formData.idNumber}
-            onChange={handleChange}
-            className="block w-full border border-gray-300 rounded py-2 px-3 text-black"
-            required
-          />
-        </div>
-
         <button
           type="submit"
           className="bg-black text-white rounded py-2 px-4 hover:bg-gray-800"
@@ -171,9 +244,8 @@ export default function ProfilePage() {
         </button>
       </form>
 
-      {/* COLLAPSIBLE SECTIONS */}
       <div className="mt-10">
-        {/* Active Reservations */}
+
         <div className="border-b border-gray-200 pb-2 mb-4">
           <button
             type="button"
@@ -188,14 +260,24 @@ export default function ProfilePage() {
             </span>
           </button>
           {expandedSections.activeReservations && (
-            <div className="mt-2 text-black">
-              {/* Placeholder content or dynamic reservation data */}
-              <p>No active reservations at this time.</p>
+            <div className="mt-2 text-black space-y-2">
+              {reservations.length > 0 ? (
+                reservations.map((res) => (
+                  <div
+                    key={res.id}
+                    className="border rounded p-3 bg-gray-50 text-sm"
+                  >
+                    <p><strong>Start:</strong> {new Date(res.startTime).toLocaleString()}</p>
+                    <p><strong>End:</strong> {new Date(res.endTime).toLocaleString()}</p>
+                  </div>
+                ))
+              ) : (
+                <p>No active reservations at this time.</p>
+              )}
             </div>
           )}
         </div>
 
-        {/* Active Fines */}
         <div className="border-b border-gray-200 pb-2 mb-4">
           <button
             type="button"
@@ -209,13 +291,11 @@ export default function ProfilePage() {
           </button>
           {expandedSections.activeFines && (
             <div className="mt-2 text-black">
-              {/* Placeholder content or dynamic fines data */}
               <p>You have no active fines currently.</p>
             </div>
           )}
         </div>
 
-        {/* Order History */}
         <div className="border-b border-gray-200 pb-2 mb-4">
           <button
             type="button"
@@ -231,7 +311,6 @@ export default function ProfilePage() {
           </button>
           {expandedSections.orderHistory && (
             <div className="mt-2 text-black">
-              {/* Placeholder content or dynamic order data */}
               <p>You have no orders in your history.</p>
             </div>
           )}
@@ -240,3 +319,121 @@ export default function ProfilePage() {
     </main>
   );
 }
+
+
+
+
+/*'use client';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+
+type Reservation = {
+  id: number;
+  userID: number;
+  spotID: number;
+  paymentID: number;
+  startTime: string; //timestamp
+  endTime: string; //timestamp
+};
+
+export default function ProfilePage() {
+
+  const router = useRouter();
+  const [userID, setUserID] = useState<number | null>(null);
+  const [reservations, setReservations] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  console.log("check0");
+
+  useEffect(() => {
+    async function fetchUserInfo() {
+      console.log("check4");
+      try {
+        console.log("check1");
+        const loginRes = await fetch('/api/login?includeUser=true');
+        const loginData = await loginRes.json();
+
+        if (!loginData.loggedIn) {
+          router.push('/login');
+          return;
+        }
+
+        const userIdent = loginData.user?.id;
+        if (!userIdent) {
+          throw new Error('User ID not found');
+        }
+
+        console.log(userIdent);
+
+        setUserID(userIdent);
+      } catch (error) {
+        console.error('Error fetching user info:', error);
+        router.push('/login');
+      }
+    }
+
+    fetchUserInfo();
+  }, [router]);
+
+  useEffect(() => {
+    console.log("check5");
+    async function fetchReservations() {
+      console.log("check2");
+      if (!userID) return;
+
+      try {
+        setLoading(true);
+        const res = await fetch(`/api/reservations/user/${userID}`);
+        const data = await res.json();
+
+        if (res.ok) {
+          setReservations(data);
+          //console.log(data);
+        } else {
+          //console.log("error");
+          console.error('Error fetching reservations:', data.error || 'Unknown error');
+          setReservations([]);
+        }
+      } catch (error) {
+        console.error('Error fetching reservations:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchReservations();
+  }, [userID]);
+
+  return (
+    <div>
+      <h1>Profile Page</h1>
+
+      <div>
+        <h2>Your Reservations</h2>
+        {loading ? (
+          <p>Loading reservations...</p>
+        ) : reservations.length > 0 ? (
+          <ul>
+            {reservations.map((reservation, index) => (
+              <li key={index}>
+                <p>Reservation ID: {reservation.id}</p>
+                <p>Details: {reservation.details}</p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>No active reservations at this time.</p>
+        )}
+      </div>
+
+      <div>
+        <h2>Your Fines</h2>
+        <p>You have no active fines currently.</p>
+      </div>
+
+      <div>
+        <h2>Your Order History</h2>
+        <p>You have no orders in your history.</p>
+      </div>
+    </div>
+  );
+}*/
