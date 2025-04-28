@@ -64,7 +64,8 @@ export default function GiveFinesPage() {
     e.preventDefault();
     if (!selectedUser) return;
     try {
-      const res = await fetch('/api/fines', {
+        let userID = selectedUser.id;
+        const res = await fetch(`/api/fines/user/${userID}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: selectedUser.id, ...fine }),

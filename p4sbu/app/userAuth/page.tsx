@@ -27,7 +27,7 @@ export default function UserAuthPage() {
         const res = await fetch('/api/users');
         if (!res.ok) throw new Error('Failed to load users');
         const data: User[] = await res.json();
-        setUsers(data.filter(u => !u.authenticated));
+        setUsers(data.filter(u => !u.isConfirmed));
       } catch (e: any) {
         setError(e.message);
       } finally {
@@ -40,8 +40,8 @@ export default function UserAuthPage() {
   // Authenticate a user
   async function handleAuthenticate(userId: number) {
     try {
-      const res = await fetch('/api/users/authenticate', {
-        method: 'POST',
+      const res = await fetch(`/api/users/${userId}/confirm`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: userId }),
       });

@@ -12,10 +12,22 @@ type Reservation = {
   endTime: string; // timestamp
 };
 
+type Fine = {
+  id: number;
+  userID: number;
+  amount: number;
+  createdAt: string; // timestamp
+  statusPaid: boolean;
+  payBy: string; // timestamp
+  description: string;
+};
+
 export default function ProfilePage() {
   const router = useRouter();
   const [userID, setUserID] = useState<number | null>(null);
-  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [reservations, setActiveReservations] = useState<Reservation[]>([]);
+  const [orderHistory, setOrderHistory] = useState<Reservation[]>([]);
+  const [activeFines, setActiveFines] = useState<Fine[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   // Form state
@@ -50,6 +62,35 @@ export default function ProfilePage() {
     fetchUserInfo();
   }, [router]);
 
+
+
+  useEffect(() => {
+    async function fetchFines() {
+      if (!userID) return;
+      try {
+        setLoading(true);
+        const res = await fetch(`/api/fines/user/${userID}`);
+        const data = await res.json();
+        if (res.ok) setActiveFines(data);
+        else setActiveFines([]);
+      } catch (error) {
+        console.error('Error fetching fines:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchFines();
+  }, [userID]);
+
+
+
+  function isOlderThan24Hours(reservationEndTime: string) {
+    const reservationEnd = new Date(reservationEndTime);
+    const currentTime = new Date();
+    const differenceInHours = (currentTime.getTime() - reservationEnd.getTime()) / (1000 * 60 * 60);
+    return differenceInHours > 24;
+  }
+
   useEffect(() => {
     async function fetchReservations() {
       if (!userID) return;
@@ -57,8 +98,20 @@ export default function ProfilePage() {
         setLoading(true);
         const res = await fetch(`/api/reservations/user/${userID}`);
         const data = await res.json();
-        if (res.ok) setReservations(data);
-        else setReservations([]);
+        if (res.ok) {
+          // Split reservations into active and order history based on 24 hours check
+          const activeReservations = data.filter(
+            (res: Reservation) => !isOlderThan24Hours(res.endTime)
+          );
+          const orderHistory = data.filter(
+            (res: Reservation) => isOlderThan24Hours(res.endTime)
+          );
+          setActiveReservations(activeReservations);
+          setOrderHistory(orderHistory);
+        } else {
+          setActiveReservations([]);
+          setOrderHistory([]);
+        }
       } catch (error) {
         console.error('Error fetching reservations:', error);
       } finally {
@@ -67,6 +120,7 @@ export default function ProfilePage() {
     }
     fetchReservations();
   }, [userID]);
+
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -259,9 +313,26 @@ export default function ProfilePage() {
             <span className="text-lg">{expandedSections.activeFines ? "▲" : "▼"}</span>
           </button>
           {expandedSections.activeFines && (
-            <div className="mt-2 text-black">
-              <p>You have no active fines currently.</p>
-            </div>
+            <div className="mt-2 text-black space-y-2">
+            {activeFines.length > 0 ? (
+              activeFines.map(res => (
+                <div key={res.id} className="border rounded p-3 bg-gray-50 text-sm">
+                  <p><strong>Date Assigned:</strong> {new Date(res.createdAt).toLocaleString()}</p>
+                  <p><strong>Pay By:</strong> {new Date(res.payBy).toLocaleString()}</p>
+                  <p><strong>Amount:</strong> {"$" + res.amount}</p>
+                  <p><strong>Description:</strong> {res.description}</p>
+                  <p>
+                    <strong>Status: </strong> 
+                    <span className={res.statusPaid ? "text-green-500" : "text-red-500"}>
+                      {res.statusPaid ? "Paid" : "Not Paid"}
+                    </span>
+                  </p>
+                </div>
+              ))
+            ) : (
+              <p>No active reservations at this time.</p>
+            )}
+          </div>
           )}
         </div>
 
@@ -275,9 +346,18 @@ export default function ProfilePage() {
             <span className="text-lg">{expandedSections.orderHistory ? "▲" : "▼"}</span>
           </button>
           {expandedSections.orderHistory && (
-            <div className="mt-2 text-black">
-              <p>You have no orders in your history.</p>
-            </div>
+            <div className="mt-2 text-black space-y-2">
+            {orderHistory.length > 0 ? (
+              orderHistory.map(res => (
+                <div key={res.id} className="border rounded p-3 bg-gray-50 text-sm">
+                  <p><strong>Start:</strong> {new Date(res.startTime).toLocaleString()}</p>
+                  <p><strong>End:</strong> {new Date(res.endTime).toLocaleString()}</p>
+                </div>
+              ))
+            ) : (
+              <p>No active reservations at this time.</p>
+            )}
+          </div>
           )}
         </div>
       </div>
