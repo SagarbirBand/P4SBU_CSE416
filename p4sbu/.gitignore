@@ -45,3 +45,7 @@ next_info.md
 
 # Preventing VScode options from syncing 
 /.vscode
+
+# Ignore webpack cache
+/cache/
+
