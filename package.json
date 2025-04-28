@@ -25,6 +25,7 @@
     "pg": "^8.14.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-redux": "^9.2.0",
     "tailwind": "^4.0.0",
     "utf-8-validate": "^6.0.5"
   },
