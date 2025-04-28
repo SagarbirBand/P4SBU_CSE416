@@ -10,5 +10,5 @@ const nextConfig = {
 };*/
 
 module.exports = {
-  basePath: '',
-};
+  output: 'export',
+}
