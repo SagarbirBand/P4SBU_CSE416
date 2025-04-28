@@ -23,7 +23,7 @@ export default async function RootLayout({
   const user = token ? await getUserFromToken(token) : null;
 
   const isLoggedIn = Boolean(user);
-  const isAuth = user?.isAuth ?? false; // safely extract isAuth
+  const isAdmin = user?.isAuth ?? false; // safely extract isAuth
 
   //console.log("isAuth:", isAuth); // Optional: debug check
 
@@ -57,7 +57,7 @@ export default async function RootLayout({
                 Register
               </Link>
             </>
-          ) : !isAuth ? (
+          ) : !isAdmin ? (
             
             
             //generic user case
