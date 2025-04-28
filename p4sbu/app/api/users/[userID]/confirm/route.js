@@ -16,7 +16,7 @@ try {
 }
 */
 
-import { supabase } from './db.js'; // from '../../lib/db.js';
+/*import { supabase } from './db.js'; // from '../../lib/db.js';
 import { NextResponse } from 'next/server';
 
 export async function PATCH(request, { params }) {
@@ -29,6 +29,23 @@ export async function PATCH(request, { params }) {
       .single();
     if (error) throw error;
     return NextResponse.json(data);
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}*/
+
+import { supabase } from './db.js';
+import { NextResponse } from 'next/server';
+
+export async function PATCH(request, { params }) {
+  const { userID } = params;
+  try {
+    const { error } = await supabase
+      .from('users')
+      .update({ isConfirmed: true })
+      .eq('id', userID);
+    if (error) throw error;
+    return NextResponse.json({ success: true });
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

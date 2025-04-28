@@ -142,9 +142,9 @@ export default function Dashboard() {
 
         <nav className="flex flex-wrap gap-4 mb-6">
           <Link href="/profile" className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Profile</Link>
-          <Link href="/parking" className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Find Parking</Link>
-          <Link href="/reservations" className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">My Reservations</Link>
-          <Link href="/fines" className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Fines</Link>
+          <Link href="/reserve" className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Find Parking</Link>
+          <Link href="/profile" className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">My Reservations</Link>
+          <Link href="/profile" className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Fines</Link>
         </nav>
 
         <div className="text-gray-700">

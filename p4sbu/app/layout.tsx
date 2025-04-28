@@ -1,4 +1,3 @@
-// app/layout.tsx
 import Link from "next/link";
 import { cookies } from "next/headers";
 import "./globals.css";
@@ -16,16 +15,29 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-
   const cookieStore = cookies();
   const token = cookieStore.get("token")?.value;
 
   const user = token ? await getUserFromToken(token) : null;
 
   const isLoggedIn = Boolean(user);
-  const isAdmin = user?.isAuth ?? false; // safely extract isAuth
+  const isAdmin = user?.isAuth ?? false;
+  
+  /*const isConfirmed = user?.isConfirmed ?? false;
 
-  //console.log("isAuth:", isAuth); // Optional: debug check
+  if (isLoggedIn && !isConfirmed) {
+    return (
+      <html lang="en">
+        <head>
+          <meta httpEquiv="refresh" content="0; url=/purgatory" />
+          <script dangerouslySetInnerHTML={{ __html: "window.location.href='/purgatory';" }} />
+        </head>
+        <body>
+          Redirecting to purgatory...
+        </body>
+      </html>
+    );
+  }*/
 
   return (
     <html lang="en">
@@ -37,9 +49,6 @@ export default async function RootLayout({
           </Link>
           <div className="space-x-6">
           {!isLoggedIn ? (
-            
-            
-            //not logged in case
             <>
               <Link href="/contact" className="text-black hover:text-red-600">
                 Contact
@@ -58,9 +67,6 @@ export default async function RootLayout({
               </Link>
             </>
           ) : !isAdmin ? (
-            
-            
-            //generic user case
             <>
               <Link href="/reserve" className="text-black hover:text-red-600">
                 Reserve
@@ -71,15 +77,15 @@ export default async function RootLayout({
               <LogoutButton />
             </>
           ) : (
-            
-            
-            //admin case
             <>
-              <Link href="/auth" className="text-black hover:text-red-600">
-                User Auth.
-              </Link>
-              <Link href="/parking" className="text-black hover:text-red-600">
+              <Link href="/ParkingMgmt" className="text-black hover:text-red-600">
                 Parking Mgmt.
+              </Link>
+              <Link href="/userAuth" className="text-black hover:text-red-600">
+                User Authentication
+              </Link>
+              <Link href="/giveFines" className="text-black hover:text-red-600">
+                Fines
               </Link>
               <Link href="/reports" className="text-black hover:text-red-600">
                 Reports
