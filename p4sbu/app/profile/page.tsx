@@ -293,7 +293,7 @@ export default function ProfilePage() {
               <button type="button" onClick={handleCancel} className="bg-gray-300 text-black rounded py-2 px-4 hover:bg-gray-400">Cancel</button>
             </>
           ) : (
-            <button type="button" onClick={handleEdit} className="bg-black text-white rounded py-2 px-4 hover:bg-gray-800">Edit</button>
+            <button type="button" onClick={handleEdit} data-cy="edit-profile" className="bg-black text-white rounded py-2 px-4 hover:bg-gray-800">Edit</button>
           )}
         </div>
       </form>

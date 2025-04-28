@@ -1,4 +1,3 @@
-
 // app/parking/page.tsx
 'use client';
 
@@ -495,6 +494,7 @@ export default function ParkingPage() {
   if (mapView && !isLoaded)
     return <div className="p-4 text-black">Loading map…</div>;
 
+
   return (
     <main className="flex flex-col" style={{ height: 'calc(100vh - 73px)' }}>
       {/* Header */}
@@ -732,7 +732,6 @@ export default function ParkingPage() {
             </div>
           )}
         </aside>
-
         {/* Main content */}
         <section className="flex-1 relative">
           {!mapView ? (
@@ -885,8 +884,7 @@ export default function ParkingPage() {
                     );
                   })()}
                 </>
-              )}
-              
+              )}            
             </GoogleMap>
           )}
         </section>
