@@ -93,7 +93,7 @@ export default function Dashboard() {
   useEffect(() => {
     async function fetchUserInfo() {
       try {
-        // 1. Check login status and get user ID
+        //check login status and get user ID
         const loginRes = await fetch('/api/login?includeUser=true');
         const loginData = await loginRes.json();
 
@@ -107,7 +107,7 @@ export default function Dashboard() {
           throw new Error('User ID not found');
         }
 
-        // 2. Fetch user data from your user route
+        //Fetch user data from your user route
         const userRes = await fetch(`/api/users/${userID}`);
         const userData = await userRes.json();
 
@@ -125,36 +125,70 @@ export default function Dashboard() {
     fetchUserInfo();
   }, [router]);
 
-  return (
-    <main className="relative min-h-screen flex items-center justify-center bg-gray-100">
-      <RefreshHandler />
-      <BGIMG url="/sbu-tree.jpg" />
-      <div className="relative z-10 bg-white rounded-xl shadow-lg p-8 w-full max-w-2xl">
-        <h1 className="text-3xl font-bold text-black mb-6">Dashboard</h1>
 
-        {user && (
-          <div className="mb-4 text-gray-800">
-            <p className="text-lg font-medium">Welcome, {user.name}!</p>
-            <p className="text-sm text-gray-600">Email: {user.email}</p>
-            <p className="text-sm text-gray-600">License Plate: {user.licensePlate}</p>
+  if(user?.isAuth)
+  {
+    return (
+      <main className="relative min-h-screen flex items-center justify-center bg-gray-100">
+        <RefreshHandler />
+        <BGIMG url="/sbu-tree.jpg" />
+        <div className="relative z-10 bg-white rounded-xl shadow-lg p-8 w-full max-w-2xl">
+          <h1 className="text-3xl font-bold text-black mb-6">Dashboard</h1>
+
+          {user && (
+            <div className="mb-4 text-gray-800">
+              <p className="text-lg font-medium">Welcome, {user.name}!</p>
+            </div>
+          )}
+
+          <nav className="flex flex-wrap gap-4 mb-6">
+            <Link href="/ParkingMgmt" className="bg-blue-900 text-white px-4 py-2 rounded hover:bg-blue-800">Manage Parking</Link>
+            <Link href="/userAuth" className="bg-blue-900 text-white px-4 py-2 rounded hover:bg-blue-800">Authenticate Users</Link>
+            <Link href="/giveFines" className="bg-blue-900 text-white px-4 py-2 rounded hover:bg-blue-800">Administer Fines</Link>
+            <Link href="/giveFines" className="bg-blue-900 text-white px-4 py-2 rounded hover:bg-blue-800">Reports (TBI)</Link>
+          </nav>
+
+          <div className="text-gray-700">
+            <p>
+              Welcome to the Admin Dashboard. Happy Administering!
+            </p>
           </div>
-        )}
-
-        <nav className="flex flex-wrap gap-4 mb-6">
-          <Link href="/profile" className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Profile</Link>
-          <Link href="/reserve" className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Find Parking</Link>
-          <Link href="/profile" className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">My Reservations</Link>
-          <Link href="/profile" className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Fines</Link>
-        </nav>
-
-        <div className="text-gray-700">
-          <p>
-            Welcome to your dashboard. Here you can view your reservations, create new ones,
-            update your profile, and check fines.
-          </p>
         </div>
-      </div>
-    </main>
-  );
-}
+      </main>
+    );
+  }
+  else
+  {
+    return (
+      <main className="relative min-h-screen flex items-center justify-center bg-gray-100">
+        <RefreshHandler />
+        <BGIMG url="/sbu-tree.jpg" />
+        <div className="relative z-10 bg-white rounded-xl shadow-lg p-8 w-full max-w-2xl">
+          <h1 className="text-3xl font-bold text-black mb-6">Dashboard</h1>
 
+          {user && (
+            <div className="mb-4 text-gray-800">
+              <p className="text-lg font-medium">Welcome, {user.name}!</p>
+              <p className="text-sm text-gray-600">Email: {user.email}</p>
+              <p className="text-sm text-gray-600">License Plate: {user.licensePlate}</p>
+            </div>
+          )}
+
+          <nav className="flex flex-wrap gap-4 mb-6">
+            <Link href="/profile" className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Profile</Link>
+            <Link href="/reserve" className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Find Parking</Link>
+            <Link href="/profile" className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">My Reservations</Link>
+            <Link href="/profile" className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Fines</Link>
+          </nav>
+
+          <div className="text-gray-700">
+            <p>
+              Welcome to your dashboard. Here you can view your reservations, create new ones,
+              update your profile, and check fines.
+            </p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+}
