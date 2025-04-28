@@ -205,7 +205,7 @@ export default function ProfilePage() {
 
         //update fine
         const fineUpdateRes = await fetch(`/api/fines/${selectedFine.id}`, {
-            method: 'PATCH',
+            method: 'PUT',
         });
 
         const fineUpdateResponseData = await fineUpdateRes.json();

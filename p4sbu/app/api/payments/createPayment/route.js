@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 export async function POST(request) {
   const { userID, amount } = await request.json();
 
-  if (!userID || !amount) {
+  if (!userID) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 

@@ -437,6 +437,8 @@ export default function ParkingPage() {
         selectedReservation.meterRate,
         selectedReservation.permitType
       );
+
+      console.log("amount:", {amount});
       
       // create the payment first
       const paymentResponse = await fetch('/api/payments/createPayment', {

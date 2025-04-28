@@ -17,7 +17,7 @@ export async function GET(request, { params }) {
 }
 
 // User paid the fine so now status is true (MAKE SURE TO CHECK FOR CORRESPONDING PAYMENT!! Thank you)
-export async function PATCH(request, { params }) {
+export async function PUT(request, { params }) {
   const { fineID } = params;
 
   try {
