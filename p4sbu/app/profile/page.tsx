@@ -32,10 +32,10 @@ export default function ProfilePage() {
 
   // Profile form state
   const [formData, setFormData] = useState({
-    email: "support@profilepress.net",
-    name: "John Doe",
+    email: "",
+    name: "",
     password: "",
-    permitType: "student",
+    permitType: "",
     licensePlate: "",
     idNumber: "",
   });
@@ -113,11 +113,56 @@ export default function ProfilePage() {
     if (backupFormData) setFormData(backupFormData);
     setIsEditing(false);
   }
-  function handleSubmit(e: React.FormEvent) {
+
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    // TODO: update profile via API
-    setIsEditing(false);
+  
+    // Prepare data to be sent to the API
+    const updatedData = {
+      email: formData.email,
+      name: formData.name,
+      permitType: formData.permitType,
+      licensePlate: formData.licensePlate,
+      password: formData.password, 
+    };
+  
+    // Call API to update user info
+    try {
+      const res = await fetch(`/api/users/${userID}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedData),
+      });
+  
+      const responseData = await res.json();
+  
+      if (res.ok) {
+        // Successfully updated user info
+        setFormData({
+          ...formData,
+          email: responseData.email,
+          name: responseData.name,
+          permitType: responseData.permitType,
+          licensePlate: responseData.licensePlate,
+          password: '', // Clear password after update
+        });
+        setIsEditing(false);
+      } else {
+        // Handle errors from the server
+        console.error('Failed to update:', responseData.error);
+        alert('Failed to update profile. Please try again.');
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      window.location.reload();
+    }
   }
+
+
+
   function toggleSection(key: keyof typeof expandedSections) {
     setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }));
   }
@@ -132,19 +177,55 @@ export default function ProfilePage() {
   function handleCardChange(e: React.ChangeEvent<HTMLInputElement>) {
     setCardInfo({ ...cardInfo, [e.target.name]: e.target.value });
   }
+
+
   async function processPayment() {
     if (!selectedFine) return;
+
+    const paymentData = {
+        userID: selectedFine.userID, 
+        amount: selectedFine.amount,
+    };
+
     try {
-      const res = await fetch(`/api/fines/${selectedFine.id}/pay`, { method: 'PATCH' });
-      if (!res.ok) throw new Error('Payment failed');
-      setActiveFines(prev =>
-        prev.map(f => (f.id === selectedFine.id ? { ...f, statusPaid: true } : f))
-      );
-      setShowModal(false);
+        //create payment entry
+        const paymentRes = await fetch('/api/payments/createPayment', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(paymentData),
+        });
+
+        const paymentResponseData = await paymentRes.json();
+
+        if (!paymentRes.ok) {
+            throw new Error(paymentResponseData.error || 'Failed to register payment');
+        }
+
+        //update fine
+        const fineUpdateRes = await fetch(`/api/fines/${selectedFine.id}`, {
+            method: 'PUT',
+        });
+
+        const fineUpdateResponseData = await fineUpdateRes.json();
+
+        if (!fineUpdateRes.ok) {
+            throw new Error(fineUpdateResponseData.error || 'Failed to update fine status');
+        }
+
+        //update UI
+        setActiveFines(prev =>
+            prev.map(f =>
+                f.id === selectedFine.id ? { ...f, statusPaid: true } : f
+            )
+        );
+        setShowModal(false);
+
     } catch (e: any) {
-      setPaymentError(e.message);
+        setPaymentError(e.message);
     }
-  }
+}
 
   return (
     <main className="max-w-4xl mx-auto p-4">
@@ -187,10 +268,13 @@ export default function ProfilePage() {
             className="block w-full border border-gray-300 rounded py-2 px-3 text-black disabled:bg-gray-100 disabled:cursor-not-allowed"
             required
           >
-            <option value="student">Student</option>
-            <option value="commuter">Commuter</option>
-            <option value="ada">ADA</option>
-            <option value="faculty staff">Faculty Staff</option>
+            <option value="Resident">Resident</option>
+            <option value="Commuter">Commuter</option>
+            <option value="Commuter Premium">Commuter Premium</option>
+            <option value="Faculty/Staff">Faculty/Staff</option>
+            <option value="ADA">ADA</option>
+            <option value="Other/Misc.">Other/Misc.</option>
+            <option value="None">None</option>
           </select>
         </div>
         <div>

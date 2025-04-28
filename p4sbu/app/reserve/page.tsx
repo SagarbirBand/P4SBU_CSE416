@@ -2,11 +2,13 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { buildingCoordinates, BuildingName } from '../../lib/buildings';
 import {
   useLoadScript,
   GoogleMap,
   Marker,
+  DirectionsService,
   DirectionsRenderer,
 } from '@react-google-maps/api';
 
@@ -18,6 +20,7 @@ interface ParkingLotApi {
   name: string;
   location: string;
   coordinates: string; // "(lat, lng)"
+  meterRate: number;
 }
 interface ParkingSpotTypeApi {
   id: number;
@@ -37,7 +40,18 @@ type LotWithTypes = {
   distance?: number;
   remainingCapacity: number;
   typesToShow?: ParkingSpotType[];
+  meterRate: number;
 };
+
+
+interface SelectedReservation {
+  lotName: string;
+  permitType: string;
+  start: string;
+  end: string;
+  meterRate: number;
+  spotTypeID: number;
+}
 
 const ALL_PERMIT_TYPES = [
   'Faculty/Staff',
@@ -68,10 +82,32 @@ function toLocalHourString(date: Date) {
   )}T${pad(date.getHours())}:00`;
 }
 
+function calculateCost(start: string | null | undefined, end: string | null | undefined, rate: number | null | undefined, permitType?: string | null): number {
+  // Return 0 if any required parameter is missing
+  if (!start || !end || !rate || !permitType) {
+    console.log("something null");
+    return 0;
+  }
+  
+  // Return 0 if the permit type is not "Metered"
+  if (permitType && permitType !== 'Metered') {
+    console.log("not metered");
+    return 0;
+  } 
+  
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  const diffHours = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60);
+  return diffHours * rate;
+}
+
 export default function ParkingPage() {
   // ─── State ───────────────────────────────────────────────
   const [lots, setLots] = useState<LotWithTypes[]>([]);
   const [allTypes] = useState<PermitType[]>([...ALL_PERMIT_TYPES]);
+
+  const [userID, setUserID] = useState<number | null>(null);
+  const router = useRouter();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTypes, setSelectedTypes] = useState<PermitType[]>([]);
@@ -124,6 +160,30 @@ export default function ParkingPage() {
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
   });
 
+  const [showModal, setShowModal] = useState(false);
+  const [selectedReservation, setSelectedReservation] = useState<SelectedReservation | null>(null);
+  const [cardInfo, setCardInfo] = useState({ name: '', number: '', exp: '', cvv: '' });
+  const [paymentError, setPaymentError] = useState('');
+
+
+
+  // Fetch user and initialize
+  useEffect(() => {
+    async function fetchUserInfo() {
+      const loginRes = await fetch('/api/login?includeUser=true');
+      const loginData = await loginRes.json();
+      if (!loginData.loggedIn) {
+        router.push('/login');
+        return;
+      }
+      const id = loginData.user.id;
+      setUserID(id);
+    }
+    fetchUserInfo();
+  }, [router]);
+
+
+
   // ─── Fetch lots & types ───────────────────────────────────
   useEffect(() => {
     async function load() {
@@ -147,6 +207,7 @@ export default function ParkingPage() {
           types: [],
           distance: undefined,
           remainingCapacity: 0,
+          meterRate: l.meterRate
         };
       });
 
@@ -332,10 +393,107 @@ export default function ParkingPage() {
     lotName: string,
     permitType: string,
     start: string,
-    end: string
+    end: string,
+    meterRate: number,
+    spotTypeID: number,
   ) => {
-    console.log('Reserve', { lotName, permitType, start, end });
+    setSelectedReservation({ lotName, permitType, start, end, meterRate, spotTypeID });
+    setCardInfo({ name: '', number: '', exp: '', cvv: '' });
+    setPaymentError('');
+    setShowModal(true);
   };
+
+  const handleCardChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCardInfo({ ...cardInfo, [e.target.name]: e.target.value });
+  };
+
+  /*const handleReservationSubmit = async () => {
+    if (!selectedReservation) return;
+    try {
+      alert(`Reservation confirmed for ${selectedReservation.lotName} (${selectedReservation.permitType})!`);
+      setShowModal(false);
+    } catch (error) {
+      setPaymentError('Failed to process reservation.');
+    }
+  };*/
+
+
+  const handleReservationSubmit = async () => {
+    if (!selectedReservation) return;
+    setPaymentError('');
+    try {
+      
+      //card check
+      if (!cardInfo.name.trim() || !cardInfo.number.trim() || !cardInfo.exp.trim() || !cardInfo.cvv.trim()) {
+        setPaymentError('Please fill in all payment fields');
+        return;
+      }
+      
+      // calc amount cost
+      const amount = calculateCost(
+        selectedReservation.start,
+        selectedReservation.end, 
+        selectedReservation.meterRate,
+        selectedReservation.permitType
+      );
+
+      console.log("amount:", {amount});
+      
+      // create the payment first
+      const paymentResponse = await fetch('/api/payments/createPayment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userID,
+          amount
+        }),
+      });
+      
+      if (!paymentResponse.ok) {
+        const errorData = await paymentResponse.json();
+        throw new Error(errorData.error || 'Payment failed');
+      }
+      
+      const paymentData = await paymentResponse.json();
+      const paymentID = paymentData.paymentID;
+      
+      // create the reservation with the payment ID
+      const spotID = selectedReservation.spotTypeID; 
+      
+      const reservationResponse = await fetch('/api/reservations/createReservation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userID,
+          spotID,
+          paymentID,
+          startTime: selectedReservation.start,
+          endTime: selectedReservation.end
+        }),
+      });
+      
+      if (!reservationResponse.ok) {
+        const errorData = await reservationResponse.json();
+        throw new Error(errorData.error || 'Reservation failed');
+      }
+      
+      // Show success message and close modal
+      alert(`Reservation confirmed for ${selectedReservation.lotName} (${selectedReservation.permitType})!`);
+      setShowModal(false);
+      
+    } catch (error) {
+      console.error('Reservation error:', error);
+      setPaymentError('Failed to process reservation.');
+    }
+  };
+
+  if (mapView && !isLoaded)
+    return <div className="p-4 text-black">Loading map…</div>;
+
 
   return (
     <main className="flex flex-col" style={{ height: 'calc(100vh - 73px)' }}>
@@ -550,7 +708,9 @@ export default function ParkingPage() {
                                     l.name,
                                     t.permitType,
                                     startTime,
-                                    endTime
+                                    endTime,
+                                    l.meterRate,
+                                    t.id
                                   );
                                 }}
                                 disabled={t.currentAvailable === 0}
@@ -572,7 +732,6 @@ export default function ParkingPage() {
             </div>
           )}
         </aside>
-
         {/* Main content */}
         <section className="flex-1 relative">
           {!mapView ? (
@@ -611,7 +770,9 @@ export default function ParkingPage() {
                                   l.name,
                                   t.permitType,
                                   startTime,
-                                  endTime
+                                  endTime,
+                                  l.meterRate,
+                                  t.id
                                 );
                               }}
                               disabled={t.currentAvailable === 0}
@@ -723,11 +884,74 @@ export default function ParkingPage() {
                     );
                   })()}
                 </>
-              )}
+              )}            
             </GoogleMap>
           )}
         </section>
       </div>
-    </main>
+
+    {/* Modal */}
+    {showModal && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white p-6 rounded shadow-lg w-full max-w-md">
+          <h3 className="text-lg font-semibold mb-4 text-black">Enter Payment Info</h3>
+          {paymentError && <p className="text-red-600 mb-2">{paymentError}</p>}
+          <p className="mb-2 text-black">
+            Reserving: <strong>{selectedReservation?.lotName}</strong> ({selectedReservation?.permitType})
+          </p>
+          <p className="mb-2 text-black">
+            Total Cost: <strong>${calculateCost(
+              selectedReservation?.start, 
+              selectedReservation?.end, 
+              selectedReservation?.meterRate,
+              selectedReservation?.permitType
+            ).toFixed(2)}</strong>
+          </p>
+          <input
+            name="name"
+            placeholder="Cardholder Name"
+            value={cardInfo.name}
+            onChange={handleCardChange}
+            className="w-full mb-2 border p-2 text-black placeholder-gray-700"
+          />
+          <input
+            name="number"
+            placeholder="Card Number"
+            value={cardInfo.number}
+            onChange={handleCardChange}
+            className="w-full mb-2 border p-2 text-black placeholder-gray-700"
+          />
+          <input
+            name="exp"
+            placeholder="MM/YY"
+            value={cardInfo.exp}
+            onChange={handleCardChange}
+            className="w-full mb-2 border p-2 text-black placeholder-gray-700"
+          />
+          <input
+            name="cvv"
+            placeholder="CVV"
+            value={cardInfo.cvv}
+            onChange={handleCardChange}
+            className="w-full mb-4 border p-2 text-black placeholder-gray-700"
+          />
+          <div className="flex justify-end space-x-2">
+            <button
+              onClick={() => setShowModal(false)}
+              className="px-4 py-2 border rounded text-black"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleReservationSubmit}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+            >
+              Submit
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+  </main> 
   );
 }

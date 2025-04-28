@@ -1,4 +1,4 @@
-import { supabase } from '../../../lib/db.js';
+import { supabase } from './db.js';
 import { NextResponse } from 'next/server';
 
 export async function GET(request, { params }) {
@@ -16,30 +16,20 @@ export async function GET(request, { params }) {
   }
 }
 
+// User paid the fine so now status is true (MAKE SURE TO CHECK FOR CORRESPONDING PAYMENT!! Thank you)
 export async function PUT(request, { params }) {
   const { fineID } = params;
-  const { paymentID } = await request.json();
-
-  if (!paymentID) {
-    return NextResponse.json({ error: 'Missing paymentID' }, { status: 400 });
-  }
 
   try {
-    const { data: payment, error: paymentError } = await supabase
-      .from('payments')
-      .select('*')
-      .eq('id', paymentID)
-      .single();
-    if (paymentError || !payment) {
-      throw new Error('Payment not found');
-    }
     const { data, error } = await supabase
       .from('fines')
       .update({ statusPaid: true })
-      .eq('id', fineID)
-      .select();
+      .eq('id', fineID); 
+
     if (error) throw error;
-    return NextResponse.json({ message: 'Fine updated to paid', fine: data });
+
+    // Return the updated data
+    return NextResponse.json(data);
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

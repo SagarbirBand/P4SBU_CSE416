@@ -22,7 +22,7 @@ const SPOT_TYPES = [
 type Lot = {
   id: number;
   name: string;
-  meterPrice: number;
+  meterRate: number;
 };
 
 type SpotCount = {
@@ -79,10 +79,29 @@ export default function ParkingManagementPage() {
         const ratesInit: Record<number, number> = {};
         data.forEach(lot => {
           spotsInit[lot.id] = SPOT_TYPES.map(name => ({ name, count: 0 }));
-          ratesInit[lot.id] = lot.meterPrice;
+          ratesInit[lot.id] = lot.meterRate;
         });
         setSpotData(spotsInit);
         setMeterRates(ratesInit);
+
+        // Fetch parking spot types and populate counts
+        const spotRes = await fetch('/api/parkingSpotTypes');
+        if (!spotRes.ok) throw new Error('Failed to load parking spot types');
+        const spotTypes: { id: number; lotID: number; permitType: string; count: number; currentAvailable: number }[] = await spotRes.json();
+
+        // Populate the spot counts based on lotID
+        const updatedSpotData: Record<number, SpotCount[]> = { ...spotsInit };
+        spotTypes.forEach(spot => {
+          const lotId = spot.lotID;
+          const spotTypeIndex = SPOT_TYPES.indexOf(spot.permitType);
+          if (spotTypeIndex !== -1) {
+            updatedSpotData[lotId][spotTypeIndex] = {
+              name: spot.permitType,
+              count: spot.currentAvailable,
+            };
+          }
+        });
+        setSpotData(updatedSpotData);
       } catch (e: any) {
         setError(e.message);
       } finally {

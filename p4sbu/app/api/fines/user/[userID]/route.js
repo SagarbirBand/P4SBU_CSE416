@@ -43,24 +43,3 @@ export async function POST(request, { params }) {
   }
 }
 
-
-
-
-// User paid the fine so now status is true (MAKE SURE TO CHECK FOR CORRESPONDING PAYMENT!! Thank you)
-export async function PUT(request, { params }) {
-  const { userID } = params;
-
-  try {
-    const { data, error } = await supabase
-      .from('fines')
-      .update({ statusPaid: true })  // Update the statusPaid to true
-      .eq('userID', userID);  // Target fines for the specific userID
-
-    if (error) throw error;
-
-    // Return the updated data
-    return NextResponse.json(data);
-  } catch (err) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
-  }
-}

@@ -49,7 +49,7 @@ export default function RegisterPage() {
       });
   
       if (res.ok) {
-        router.push('/dashboard');
+        router.push('/purgatory');
       } else {
         const data = await res.json();
         setError(data.message || 'Registration failed');
