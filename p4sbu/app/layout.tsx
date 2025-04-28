@@ -17,6 +17,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
 
+  // Why are we not doing this server side?
   const cookieStore = cookies();
   const token = cookieStore.get("token")?.value;
 

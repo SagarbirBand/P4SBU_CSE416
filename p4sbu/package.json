@@ -9,7 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@react-google-maps/api": "^2.20.6",
     "@supabase/supabase-js": "^2.49.4",
+    "@swc/helpers": "^0.5.17",
     "bcrypt": "^5.1.1",
     "bufferutil": "^4.0.9",
     "dotenv": "^16.4.7",
