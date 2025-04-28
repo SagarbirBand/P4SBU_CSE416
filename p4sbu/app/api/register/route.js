@@ -25,7 +25,8 @@ export async function POST(request) {
         permitType,
         licensePlate,
         address,
-        isAuth: false
+        isAuth: false,
+        isConfirmed: false
       }])
       .select();
     if (error) throw error;
