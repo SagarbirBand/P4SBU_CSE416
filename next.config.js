@@ -10,5 +10,6 @@ const nextConfig = {
 };*/
 
 module.exports = {
-    basePath: './p4sbu',
+    basePath: '/p4sbu',
+    output: 'standalone',  // Enable standalone build for dynamic rendering
   };
