@@ -1,0 +1,9 @@
+[build]
+  command = "npm run build"
+  publish = "p4sbu/.next"
+  base = "p4sbu"
+
+[dev]
+  command = "npm run dev"
+  port = 3000
+  targetPort = 3001
