@@ -75,11 +75,15 @@ export default async function RootLayout({
             
             //admin case
             <>
-              <Link href="/auth" className="text-black hover:text-red-600">
-                User Auth.
-              </Link>
-              <Link href="/parking" className="text-black hover:text-red-600">
+              
+              <Link href="/ParkingMgmt" className="text-black hover:text-red-600">
                 Parking Mgmt.
+              </Link>
+              <Link href="/userAuth" className="text-black hover:text-red-600">
+                User Authentication
+              </Link>
+              <Link href="/giveFines" className="text-black hover:text-red-600">
+                Fines
               </Link>
               <Link href="/reports" className="text-black hover:text-red-600">
                 Reports
