@@ -9,6 +9,4 @@ const nextConfig = {
   },
 };*/
 
-module.exports = {
-    basePath: '/p4sbu',
-  };
+module.exports = {}

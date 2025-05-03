@@ -1,7 +1,6 @@
 [build]
   command = "npm run build"
-  publish = "p4sbu/.next"
-  base = "p4sbu"
+  publish = ".next"
 
 [dev]
   command = "npm run dev"
