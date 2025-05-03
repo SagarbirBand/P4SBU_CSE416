@@ -7,7 +7,7 @@ import { getUserFromToken } from '../lib/auth';
 
 export const metadata = {
   title: "P4SBU",
-  description: "Parking Website",
+  description: "Parking Website"
 };
 
 export default async function RootLayout({
@@ -17,7 +17,7 @@ export default async function RootLayout({
 }) {
 
   // Why are we not doing this server side?
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;
 
   const user = token ? await getUserFromToken(token) : null;

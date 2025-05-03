@@ -1,6 +1,6 @@
 // app/api/register/route.js
 import { supabase } from '../../../lib/db.js';
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 

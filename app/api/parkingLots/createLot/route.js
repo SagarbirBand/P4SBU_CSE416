@@ -1,5 +1,5 @@
 import { supabase } from './db.js';
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 
 export async function POST(request) {
   const { name, location, capacityTotal, coordinates, meterRate } = await request.json();

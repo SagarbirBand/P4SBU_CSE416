@@ -1,8 +1,9 @@
 import { supabase } from './db.js';
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 
 // GET fines for a specific user
-export async function GET(request, { params }) {
+export async function GET(request, props) {
+  const params = await props.params;
   const { userID } = params;
   try {
     const { data, error } = await supabase
@@ -17,7 +18,8 @@ export async function GET(request, { params }) {
 }
 
 // POST a new fine for a specific user
-export async function POST(request, { params }) {
+export async function POST(request, props) {
+  const params = await props.params;
   const { userID } = params;
   try {
     const body = await request.json();

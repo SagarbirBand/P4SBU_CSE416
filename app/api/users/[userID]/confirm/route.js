@@ -35,9 +35,10 @@ export async function PATCH(request, { params }) {
 }*/
 
 import { supabase } from './db.js';
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 
-export async function PATCH(request, { params }) {
+export async function PATCH(request, props) {
+  const params = await props.params;
   const { userID } = params;
   try {
     const { error } = await supabase

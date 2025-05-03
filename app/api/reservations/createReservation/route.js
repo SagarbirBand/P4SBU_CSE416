@@ -1,5 +1,5 @@
 import { supabase } from './db.js';
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 
 export async function POST(request) {
   const { userID, spotID, paymentID, startTime, endTime } = await request.json();

@@ -4,9 +4,9 @@ import BGIMG from './components/BGIMG.tsx';
 import { cookies } from "next/headers";
 import RefreshHandler from './components/RefreshHandler';
 
-export default function Home() {
+export default async function Home() {
 
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;
   const isLoggedIn = Boolean(token);
 
