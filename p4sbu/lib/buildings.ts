@@ -1,4 +1,4 @@
-// lib/buildings.tsx
+// lib/buildings.ts
 
 export type Coordinates = [number, number];
 
