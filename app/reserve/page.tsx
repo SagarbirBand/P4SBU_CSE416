@@ -12,6 +12,15 @@ import {
   DirectionsRenderer,
 } from '@react-google-maps/api';
 
+// ↓ NEW STRIPE IMPORTS ↓
+import { loadStripe } from '@stripe/stripe-js';
+import {
+  Elements,
+  CardElement,
+  useStripe,
+  useElements,
+} from '@stripe/react-stripe-js';
+
 type Coordinates = [number, number];
 type LatLngLiteral = google.maps.LatLngLiteral;
 
@@ -42,7 +51,6 @@ type LotWithTypes = {
   typesToShow?: ParkingSpotType[];
   meterRate: number;
 };
-
 
 interface SelectedReservation {
   lotName: string;
@@ -82,26 +90,41 @@ function toLocalHourString(date: Date) {
   )}T${pad(date.getHours())}:00`;
 }
 
-function calculateCost(start: string | null | undefined, end: string | null | undefined, rate: number | null | undefined, permitType?: string | null): number {
+function calculateCost(
+  start: string | null | undefined,
+  end: string | null | undefined,
+  rate: number | null | undefined,
+  permitType?: string | null
+): number {
   // Return 0 if any required parameter is missing
-  if (!start || !end || !rate || !permitType) {
-    console.log("something null");
+  if (!start || !end || rate == null || !permitType) {
     return 0;
   }
-  
   // Return 0 if the permit type is not "Metered"
-  if (permitType && permitType !== 'Metered') {
-    console.log("not metered");
+  if (permitType !== 'Metered') {
     return 0;
-  } 
-  
+  }
   const startDate = new Date(start);
   const endDate = new Date(end);
   const diffHours = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60);
   return diffHours * rate;
 }
 
+// ─── INITIALIZE STRIPE.JS ───────────────────────────────
+const stripePromise = loadStripe(
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
+);
+
+// Wrap client UI in Elements so useStripe/useElements work
 export default function ParkingPage() {
+  return (
+    <Elements stripe={stripePromise}>
+      <ParkingPageContent />
+    </Elements>
+  );
+}
+
+function ParkingPageContent() {
   // ─── State ───────────────────────────────────────────────
   const [lots, setLots] = useState<LotWithTypes[]>([]);
   const [allTypes] = useState<PermitType[]>([...ALL_PERMIT_TYPES]);
@@ -162,12 +185,13 @@ export default function ParkingPage() {
 
   const [showModal, setShowModal] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState<SelectedReservation | null>(null);
-  const [cardInfo, setCardInfo] = useState({ name: '', number: '', exp: '', cvv: '' });
   const [paymentError, setPaymentError] = useState('');
 
+  // ─── Stripe hooks (inside Elements) ─────────────────────
+  const stripe = useStripe();
+  const elements = useElements();
 
-
-  // Fetch user and initialize
+  // ─── Fetch user and initialize ───────────────────────────
   useEffect(() => {
     async function fetchUserInfo() {
       const loginRes = await fetch('/api/login?includeUser=true');
@@ -176,13 +200,10 @@ export default function ParkingPage() {
         router.push('/login');
         return;
       }
-      const id = loginData.user.id;
-      setUserID(id);
+      setUserID(loginData.user.id);
     }
     fetchUserInfo();
   }, [router]);
-
-
 
   // ─── Fetch lots & types ───────────────────────────────────
   useEffect(() => {
@@ -207,7 +228,7 @@ export default function ParkingPage() {
           types: [],
           distance: undefined,
           remainingCapacity: 0,
-          meterRate: l.meterRate
+          meterRate: l.meterRate,
         };
       });
 
@@ -224,45 +245,20 @@ export default function ParkingPage() {
     load();
   }, []);
 
-  // ─── Distance proxy ──────────────────────────────
+  // ─── EUCLIDEAN DISTANCE ────────────────────────────────
   const recalcDistances = useCallback(
-    async (origin: Coordinates) => {
+    (origin: Coordinates) => {
       if (!lots.length) return;
-      const originStr = origin.join(',');
-      const chunkSize = 25;
-      const allDist: number[] = [];
-      for (let i = 0; i < lots.length; i += chunkSize) {
-        const slice = lots.slice(i, i + chunkSize);
-        const destParam = slice.map((l) => l.coordinates.join(',')).join('|');
-        try {
-          const resp = await fetch(
-            `/api/distance?origin=${encodeURIComponent(
-              originStr
-            )}&destinations=${encodeURIComponent(destParam)}`
-          );
-          if (!resp.ok) {
-            allDist.push(...Array(slice.length).fill(Infinity));
-            continue;
-          }
-          const json = await resp.json();
-          if (json.status !== 'OK') {
-            allDist.push(...Array(slice.length).fill(Infinity));
-            continue;
-          }
-          allDist.push(
-            ...json.rows[0].elements.map((e: any) =>
-              e.status === 'OK' ? e.distance.value : Infinity
-            )
-          );
-        } catch {
-          allDist.push(...Array(slice.length).fill(Infinity));
-        }
-      }
       setLots((cur) =>
-        cur.map((l, idx) => ({ ...l, distance: allDist[idx] ?? Infinity }))
+        cur.map((l) => {
+          const [lat, lng] = l.coordinates;
+          const dx = origin[0] - lat;
+          const dy = origin[1] - lng;
+          return { ...l, distance: Math.sqrt(dx * dx + dy * dy) };
+        })
       );
     },
-    [lots]
+    []
   );
 
   // ─── Recalc on origin change ──────────────────────────────
@@ -283,7 +279,7 @@ export default function ParkingPage() {
     if (origin) recalcDistances(origin);
   }, [mapView, listSortBy, selectedBuilding, customOrigin, recalcDistances]);
 
-  // ─── Toggle view & reset ──────────────────────────────
+  // ─── Toggle view & reset ────────────────────────────────
   const toggleView = () => {
     setMapView((v) => !v);
     setSelectMode(false);
@@ -308,11 +304,11 @@ export default function ParkingPage() {
     if (newEnd > startTime) setEndTime(newEnd);
   };
 
-  // ─── Compute route ───────────────────────────────────────
+  // ─── Compute walking route ───────────────────────────────
   useEffect(() => {
     if (selectedLot !== null && map) {
       const lot = lots.find((l) => l.id === selectedLot)!;
-      const origin = new google.maps.LatLng(
+      const originLoc = new google.maps.LatLng(
         lot.coordinates[0],
         lot.coordinates[1]
       );
@@ -323,7 +319,11 @@ export default function ParkingPage() {
         : null;
       if (dest) {
         new google.maps.DirectionsService().route(
-          { origin, destination: dest, travelMode: google.maps.TravelMode.WALKING },
+          {
+            origin: originLoc,
+            destination: dest,
+            travelMode: google.maps.TravelMode.WALKING,
+          },
           (result, status) => {
             if (status === 'OK' && result) {
               setDirections(result);
@@ -370,130 +370,111 @@ export default function ParkingPage() {
         if (!mapView) {
           if (listSortBy === 'proximity') {
             const da = a.distance ?? Infinity,
-              db = b.distance ?? Infinity;
+                  db = b.distance ?? Infinity;
             if (da !== db) return da - db;
           }
           return b.remainingCapacity - a.remainingCapacity;
         } else {
           if (selectedBuilding || customOrigin) {
             const da = a.distance ?? Infinity,
-              db = b.distance ?? Infinity;
+                  db = b.distance ?? Infinity;
             if (da !== db) return da - db;
           }
           return b.remainingCapacity - a.remainingCapacity;
         }
       });
-  }, [lots, searchTerm, selectedTypes, hideFull, listSortBy, mapView, selectedBuilding, customOrigin]);
+  }, [
+    lots,
+    searchTerm,
+    selectedTypes,
+    hideFull,
+    listSortBy,
+    mapView,
+    selectedBuilding,
+    customOrigin,
+  ]);
 
-  if (mapView && !isLoaded)
-    return <div className="p-4 text-black">Loading map…</div>;
-
-  // handleReserve now takes parameters
+  // ─── RESERVATION & PAYMENT ──────────────────────────────
   const handleReserve = (
     lotName: string,
     permitType: string,
     start: string,
     end: string,
     meterRate: number,
-    spotTypeID: number,
+    spotTypeID: number
   ) => {
     setSelectedReservation({ lotName, permitType, start, end, meterRate, spotTypeID });
-    setCardInfo({ name: '', number: '', exp: '', cvv: '' });
     setPaymentError('');
     setShowModal(true);
   };
 
-  const handleCardChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCardInfo({ ...cardInfo, [e.target.name]: e.target.value });
-  };
-
-  /*const handleReservationSubmit = async () => {
-    if (!selectedReservation) return;
-    try {
-      alert(`Reservation confirmed for ${selectedReservation.lotName} (${selectedReservation.permitType})!`);
-      setShowModal(false);
-    } catch (error) {
-      setPaymentError('Failed to process reservation.');
-    }
-  };*/
-
-
   const handleReservationSubmit = async () => {
     if (!selectedReservation) return;
-    setPaymentError('');
-    try {
-      
-      //card check
-      if (!cardInfo.name.trim() || !cardInfo.number.trim() || !cardInfo.exp.trim() || !cardInfo.cvv.trim()) {
-        setPaymentError('Please fill in all payment fields');
-        return;
-      }
-      
-      // calc amount cost
-      const amount = calculateCost(
-        selectedReservation.start,
-        selectedReservation.end, 
-        selectedReservation.meterRate,
-        selectedReservation.permitType
-      );
-
-      console.log("amount:", {amount});
-      
-      // create the payment first
-      const paymentResponse = await fetch('/api/payments/createPayment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userID,
-          amount
-        }),
-      });
-      
-      if (!paymentResponse.ok) {
-        const errorData = await paymentResponse.json();
-        throw new Error(errorData.error || 'Payment failed');
-      }
-      
-      const paymentData = await paymentResponse.json();
-      const paymentID = paymentData.paymentID;
-      
-      // create the reservation with the payment ID
-      const spotID = selectedReservation.spotTypeID; 
-      
-      const reservationResponse = await fetch('/api/reservations/createReservation', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userID,
-          spotID,
-          paymentID,
-          startTime: selectedReservation.start,
-          endTime: selectedReservation.end
-        }),
-      });
-      
-      if (!reservationResponse.ok) {
-        const errorData = await reservationResponse.json();
-        throw new Error(errorData.error || 'Reservation failed');
-      }
-      
-      // Show success message and close modal
-      alert(`Reservation confirmed for ${selectedReservation.lotName} (${selectedReservation.permitType})!`);
-      setShowModal(false);
-      
-    } catch (error) {
-      console.error('Reservation error:', error);
-      setPaymentError('Failed to process reservation.');
+    if (!stripe || !elements) {
+      setPaymentError('Stripe has not loaded yet.');
+      return;
     }
+
+    // calculate amount
+    const amount = calculateCost(
+      selectedReservation.start,
+      selectedReservation.end,
+      selectedReservation.meterRate,
+      selectedReservation.permitType
+    );
+
+    // 1) Create PaymentIntent on server
+    const resp = await fetch('/api/payments/createPayment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userID, amount }),
+    });
+    if (!resp.ok) {
+      const err = await resp.json();
+      setPaymentError(err.error || 'Payment initialization failed');
+      return;
+    }
+    const { clientSecret, paymentIntentId } = await resp.json();
+
+    // 2) Confirm with Stripe.js
+    const { error, paymentIntent } = await stripe.confirmCardPayment(
+      clientSecret,
+      {
+        payment_method: {
+          card: elements.getElement(CardElement)!,
+        },
+      }
+    );
+    if (error || paymentIntent?.status !== 'succeeded') {
+      setPaymentError(error?.message || 'Payment failed');
+      return;
+    }
+
+    // 3) Create reservation
+    const reservationResponse = await fetch('/api/reservations/createReservation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userID,
+        spotID: selectedReservation.spotTypeID,
+        paymentID: paymentIntentId,
+        startTime: selectedReservation.start,
+        endTime: selectedReservation.end,
+      }),
+    });
+    if (!reservationResponse.ok) {
+      const err = await reservationResponse.json();
+      setPaymentError(err.error || 'Reservation failed');
+      return;
+    }
+
+    setShowModal(false);
+    router.push('/dashboard');
   };
 
+  // ─── RENDER ───────────────────────────────────────────────
   if (mapView && !isLoaded)
     return <div className="p-4 text-black">Loading map…</div>;
-
 
   return (
     <main className="flex flex-col" style={{ height: 'calc(100vh - 73px)' }}>
@@ -732,6 +713,7 @@ export default function ParkingPage() {
             </div>
           )}
         </aside>
+
         {/* Main content */}
         <section className="flex-1 relative">
           {!mapView ? (
@@ -749,7 +731,7 @@ export default function ParkingPage() {
                   {listSortBy === 'proximity' &&
                     (selectedBuilding || customOrigin) &&
                     typeof l.distance === 'number' && (
-                      <p>Walking dist: {Math.round(l.distance)} m</p>
+                      <p>Walking dist: {Math.round(l.distance)} units</p>
                     )}
                   {selectedLot === l.id && (
                     <div className="mt-2 space-y-1 text-black">
@@ -821,7 +803,7 @@ export default function ParkingPage() {
                 setSelectedLot(null);
               }}
             >
-              {/* pin only when no lot selected */}
+              {/* Pin only when no lot selected */}
               {selectedLot == null &&
                 (customOrigin ? (
                   <Marker
@@ -843,7 +825,7 @@ export default function ParkingPage() {
                   />
                 ) : null)}
 
-              {/* route */}
+              {/* Route */}
               {selectedLot != null && directions && (
                 <>
                   <DirectionsRenderer
@@ -884,74 +866,49 @@ export default function ParkingPage() {
                     );
                   })()}
                 </>
-              )}            
+              )}
             </GoogleMap>
           )}
         </section>
       </div>
 
-    {/* Modal */}
-    {showModal && (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white p-6 rounded shadow-lg w-full max-w-md">
-          <h3 className="text-lg font-semibold mb-4 text-black">Enter Payment Info</h3>
-          {paymentError && <p className="text-red-600 mb-2">{paymentError}</p>}
-          <p className="mb-2 text-black">
-            Reserving: <strong>{selectedReservation?.lotName}</strong> ({selectedReservation?.permitType})
-          </p>
-          <p className="mb-2 text-black">
-            Total Cost: <strong>${calculateCost(
-              selectedReservation?.start, 
-              selectedReservation?.end, 
-              selectedReservation?.meterRate,
-              selectedReservation?.permitType
-            ).toFixed(2)}</strong>
-          </p>
-          <input
-            name="name"
-            placeholder="Cardholder Name"
-            value={cardInfo.name}
-            onChange={handleCardChange}
-            className="w-full mb-2 border p-2 text-black placeholder-gray-700"
-          />
-          <input
-            name="number"
-            placeholder="Card Number"
-            value={cardInfo.number}
-            onChange={handleCardChange}
-            className="w-full mb-2 border p-2 text-black placeholder-gray-700"
-          />
-          <input
-            name="exp"
-            placeholder="MM/YY"
-            value={cardInfo.exp}
-            onChange={handleCardChange}
-            className="w-full mb-2 border p-2 text-black placeholder-gray-700"
-          />
-          <input
-            name="cvv"
-            placeholder="CVV"
-            value={cardInfo.cvv}
-            onChange={handleCardChange}
-            className="w-full mb-4 border p-2 text-black placeholder-gray-700"
-          />
-          <div className="flex justify-end space-x-2">
-            <button
-              onClick={() => setShowModal(false)}
-              className="px-4 py-2 border rounded text-black"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleReservationSubmit}
-              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-            >
-              Submit
-            </button>
+      {/* Modal */}
+      {showModal && selectedReservation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded shadow-lg w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4 text-black">Enter Payment Info</h3>
+            {paymentError && <p className="text-red-600 mb-2">{paymentError}</p>}
+            <p className="mb-2 text-black">
+              Reserving: <strong>{selectedReservation.lotName}</strong> ({selectedReservation.permitType})
+            </p>
+            <p className="mb-4 text-black">
+              Total Cost: <strong>${calculateCost(
+                selectedReservation.start,
+                selectedReservation.end,
+                selectedReservation.meterRate,
+                selectedReservation.permitType
+              ).toFixed(2)}</strong>
+            </p>
+            <div className="border p-2 mb-4">
+              <CardElement options={{ hidePostalCode: true }} />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setShowModal(false)}
+                className="px-4 py-2 border rounded text-black"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleReservationSubmit}
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              >
+                Pay & Reserve
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    )}
-  </main> 
+      )}
+    </main>
   );
 }

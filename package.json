@@ -14,6 +14,8 @@
   },
   "dependencies": {
     "@react-google-maps/api": "^2.20.6",
+    "@stripe/react-stripe-js": "^3.7.0",
+    "@stripe/stripe-js": "^7.3.0",
     "@supabase/supabase-js": "^2.49.4",
     "@swc/helpers": "^0.5.17",
     "bcrypt": "^5.1.1",
@@ -27,6 +29,7 @@
     "react-dom": "19.1.0",
     "react-redux": "^9.2.0",
     "recharts": "^2.15.3",
+    "stripe": "^18.1.0",
     "tailwind": "^4.0.0",
     "utf-8-validate": "^6.0.5"
   },
