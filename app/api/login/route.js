@@ -47,7 +47,6 @@ export async function PUT(request) {
   } catch (err) { return NextResponse.json({ error: err.message }, { status: 500 }); }
 }
 
-
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const includeUser = searchParams.get('includeUser') === 'true';

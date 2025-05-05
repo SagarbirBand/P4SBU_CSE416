@@ -2,8 +2,14 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import "./globals.css";
 import RefreshHandler from './components/RefreshHandler';
-import LogoutButton from './components/LogoutButton';
 import { getUserFromToken } from './api/lib/auth';
+
+const LogoutButton = () => <a
+                              href="/api/logout"
+                              className="bg-gray-200 text-black px-4 py-2 rounded hover:bg-gray-300"
+                            >
+                              Log Out
+                           </a>
 
 export const metadata = {
   title: "P4SBU",
