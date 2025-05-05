@@ -46,15 +46,20 @@ export default function UserAuthPage() {
         body: JSON.stringify({ id: userId }),
       });
       if (!res.ok) throw new Error('Failed to authenticate');
-      // Remove from local list
-      setUsers(prev => prev.filter(u => u.id !== userId));
+      setUsers((prev: any[]) => prev.filter((u: { id: number; }) => u.id !== userId));
     } catch (e: any) {
       setError(e.message);
     }
   }
 
+  // Deny a user (remove from pending list)
+  function handleDeny(userId: number) {
+    // option to call a DELETE or PATCH endpoint here
+    setUsers((prev: any[]) => prev.filter((u: { id: number; }) => u.id !== userId));
+  }
+
   // Filter users by name, email, licensePlate, or id
-  const filtered = users.filter(u => {
+  const filtered = users.filter((u: { name: string; email: string; licensePlate: string; id: any; }) => {
     const term = searchTerm.toLowerCase();
     return (
       u.name?.toLowerCase().includes(term) ||
@@ -87,7 +92,7 @@ export default function UserAuthPage() {
             {filtered.length === 0 ? (
               <p className="text-center text-gray-600">No users pending authentication.</p>
             ) : (
-              filtered.map(user => (
+              filtered.map((user: { [s: string]: unknown; } | ArrayLike<unknown>) => (
                 <div key={user.id} className="bg-white rounded-lg shadow-sm p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div className="space-y-1">
@@ -99,12 +104,20 @@ export default function UserAuthPage() {
                           </p>
                         ))}
                     </div>
-                    <button
-                      onClick={() => handleAuthenticate(user.id)}
-                      className="bg-red-600 text-white rounded-md py-1 px-4 hover:bg-red-700"
-                    >
-                      Authenticate
-                    </button>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleAuthenticate(user.id)}
+                        className="bg-red-600 text-white rounded-md py-1 px-4 hover:bg-red-700"
+                      >
+                        Authenticate
+                      </button>
+                      <button
+                        onClick={() => handleDeny(user.id)}
+                        className="bg-gray-400 text-white rounded-md py-1 px-4 hover:bg-gray-500"
+                      >
+                        Deny
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))
