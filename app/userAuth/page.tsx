@@ -27,7 +27,7 @@ export default function UserAuthPage() {
         const res = await fetch('/api/users');
         if (!res.ok) throw new Error('Failed to load users');
         const data: User[] = await res.json();
-        setUsers(data.filter(u =>u.isConfirmed));
+        setUsers(data.filter(u => !u.isConfirmed));
       } catch (e: any) {
         setError(e.message);
       } finally {
