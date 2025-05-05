@@ -3,7 +3,6 @@ import { supabase } from './db.js'//from '../../lib/db.js';
 import { NextResponse } from "next/server";
 
 export async function GET(request, { params }) {
-export async function GET(request, { params }) {
   const { userID } = params;
   try {
     const { data, error } = await supabase
@@ -20,7 +19,6 @@ export async function GET(request, { params }) {
 
 
 //Update User info
-export async function PUT(request, { params }) {
 export async function PUT(request, { params }) {
 
   const { userID } = params;
