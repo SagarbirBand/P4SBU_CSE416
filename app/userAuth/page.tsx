@@ -27,7 +27,7 @@ export default function UserAuthPage() {
         const res = await fetch('/api/users');
         if (!res.ok) throw new Error('Failed to load users');
         const data: User[] = await res.json();
-        setUsers(data.filter(u => !u.isConfirmed));
+        setUsers(data.filter(u =>u.isConfirmed));
       } catch (e: any) {
         setError(e.message);
       } finally {
@@ -59,7 +59,7 @@ export default function UserAuthPage() {
   }
 
   // Filter users by name, email, licensePlate, or id
-  const filtered = users.filter((u: { name: string; email: string; licensePlate: string; id: any; }) => {
+  const filtered = users.filter((u: { name?: string; email?: string; licensePlate?: string; id: any; }) => {
     const term = searchTerm.toLowerCase();
     return (
       u.name?.toLowerCase().includes(term) ||
@@ -92,7 +92,7 @@ export default function UserAuthPage() {
             {filtered.length === 0 ? (
               <p className="text-center text-gray-600">No users pending authentication.</p>
             ) : (
-              filtered.map((user: { [s: string]: unknown; } | ArrayLike<unknown>) => (
+              filtered.map((user: User) => (
                 <div key={user.id} className="bg-white rounded-lg shadow-sm p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div className="space-y-1">

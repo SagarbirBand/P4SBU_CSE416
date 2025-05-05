@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import Card from '../components/ui/Card';
+import Card from '../components/ui/card.tsx';
 import {
   LineChart,
   Line,
