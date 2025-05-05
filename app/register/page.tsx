@@ -52,7 +52,7 @@ export default function RegisterPage() {
         router.push('/purgatory');
       } else {
         const data = await res.json();
-        setError(data.message || 'Registration failed');
+        setError(data.message || 'Registration failed: Email already exists');
       }
     } catch (err) {
       setError('An unexpected error occurred');

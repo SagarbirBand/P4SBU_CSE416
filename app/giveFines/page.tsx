@@ -9,6 +9,7 @@ type User = {
   name?: string;
   email?: string;
   licensePlate?: string;
+  isConfirmed? : boolean;
 };
 
 type Fine = {
@@ -27,6 +28,9 @@ export default function GiveFinesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const [finesMap, setFinesMap] = useState<Record<number, Fine[]>>({});
+  const [expandedFines, setExpandedFines] = useState<Record<number, boolean>>({});
+
   const router = useRouter();
 
   useEffect(() => {
@@ -36,7 +40,7 @@ export default function GiveFinesPage() {
         const res = await fetch('/api/users');
         if (!res.ok) throw new Error('Failed to load users');
         const data: User[] = await res.json();
-        setUsers(data);
+        setUsers(data.filter(u => u.isConfirmed));
       } catch (e: any) {
         setError(e.message);
       } finally {
@@ -64,17 +68,32 @@ export default function GiveFinesPage() {
     e.preventDefault();
     if (!selectedUser) return;
     try {
-        let userID = selectedUser.id;
-        const res = await fetch(`/api/fines/user/${userID}`, {
+      const res = await fetch(`/api/fines/user/${selectedUser.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: selectedUser.id, ...fine }),
       });
       if (!res.ok) throw new Error('Failed to give fine');
-      // Reset
       setSelectedUser(null);
       setFine({ date: '', time: '', description: '', payBy: '', amount: 0 });
       alert('Fine issued successfully');
+    } catch (e: any) {
+      setError(e.message);
+    }
+  }
+
+  // Toggle and fetch fines for a user
+  async function handleViewFines(userId: number) {
+    if (expandedFines[userId]) {
+      setExpandedFines(prev => ({ ...prev, [userId]: false }));
+      return;
+    }
+    try {
+      const res = await fetch(`/api/fines/user/${userId}`);
+      if (!res.ok) throw new Error('Failed to load fines');
+      const data: Fine[] = await res.json();
+      setFinesMap(prev => ({ ...prev, [userId]: data }));
+      setExpandedFines(prev => ({ ...prev, [userId]: true }));
     } catch (e: any) {
       setError(e.message);
     }
@@ -106,17 +125,43 @@ export default function GiveFinesPage() {
               <p className="text-gray-600">No users found.</p>
             ) : (
               filtered.map(user => (
-                <div key={user.id} className="bg-white p-4 rounded-lg shadow-sm flex justify-between items-center">
-                  <div>
-                    <p className="font-semibold text-gray-800">{user.name || '—'}</p>
-                    <p className="text-gray-600">{user.licensePlate}</p>
+                <div key={user.id}>
+                  <div className="bg-white p-4 rounded-lg shadow-sm flex justify-between items-center">
+                    <div>
+                      <p className="font-semibold text-gray-800">{user.name || '—'}</p>
+                      <p className="text-gray-600">{user.licensePlate}</p>
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleSelect(user)}
+                        className="bg-red-600 text-white rounded-md py-1 px-4 hover:bg-red-700"
+                      >
+                        Select
+                      </button>
+                      <button
+                        onClick={() => handleViewFines(user.id)}
+                        className="bg-blue-600 text-white rounded-md py-1 px-4 hover:bg-blue-700"
+                      >
+                        {expandedFines[user.id] ? 'Hide Fines' : 'View Fines'}
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    onClick={() => handleSelect(user)}
-                    className="bg-red-600 text-white rounded-md py-1 px-4 hover:bg-red-700"
-                  >
-                    Select
-                  </button>
+                  {expandedFines[user.id] && (
+                    <div className="bg-white p-4 rounded-lg shadow-sm mt-2 space-y-2">
+                      {(finesMap[user.id] && finesMap[user.id].length > 0) ? (
+                        finesMap[user.id].map((f, idx) => (
+                          <div key={idx} className="border-b pb-2">
+                            <p className="text-gray-800">Date: {f.date} {f.time}</p>
+                            <p className="text-gray-800">Description: {f.description}</p>
+                            <p className="text-gray-800">Amount: ${f.amount.toFixed(2)}</p>
+                            <p className="text-gray-800">Pay By: {f.payBy}</p>
+                          </div>
+                        ) )
+                      ) : (
+                        <p className="text-gray-600">No fines for this user.</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))
             )}

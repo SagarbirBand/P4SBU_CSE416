@@ -1,8 +1,7 @@
 import { supabase } from './db.js';
 import { NextResponse } from "next/server";
 
-export async function GET(request, props) {
-  const params = await props.params;
+export async function GET(request, { params }) {
   const { fineID } = params;
   try {
     const { data, error } = await supabase
@@ -18,8 +17,7 @@ export async function GET(request, props) {
 }
 
 // User paid the fine so now status is true (MAKE SURE TO CHECK FOR CORRESPONDING PAYMENT!! Thank you)
-export async function PUT(request, props) {
-  const params = await props.params;
+export async function PUT(request, { params }) {
   const { fineID } = params;
 
   try {
