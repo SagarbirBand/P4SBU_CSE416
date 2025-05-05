@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { buildingCoordinates, BuildingName } from '../../lib/buildings';
+import { buildingCoordinates, BuildingName } from '../components/buildings';
 import {
   useLoadScript,
   GoogleMap,

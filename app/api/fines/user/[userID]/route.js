@@ -1,4 +1,4 @@
-import { supabase } from './db.js';
+import { supabase } from '../../../lib/db.js';
 import { NextResponse } from "next/server";
 
 // GET fines for a specific user

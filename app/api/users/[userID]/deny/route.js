@@ -1,6 +1,6 @@
 
 
-import { supabase } from './db.js';
+import { supabase } from '../../../lib/db.js';
 import { NextResponse } from "next/server";
 
 export async function DELETE(request, { params }) {

@@ -1,26 +1,32 @@
-import { supabase } from './db.js';
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
+import Stripe from 'stripe';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: '2022-11-15',
+});
 
 export async function POST(request) {
   const { userID, amount } = await request.json();
 
-  if (!userID) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+  if (!userID || amount == null) {
+    return NextResponse.json(
+      { error: 'Missing required fields' },
+      { status: 400 }
+    );
   }
 
   try {
-    const { data, error } = await supabase
-      .from('payments')
-      .insert([{ userID, amount }])
-      .select();
-    
-    if (error) throw error;
-    
+    // Create a Stripe PaymentIntent
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100),
+      currency: 'usd',
+      metadata: { userID: String(userID) },
+    });
+
     return NextResponse.json(
-      { 
-        message: 'Payment registered successfully', 
-        payment: data[0],
-        paymentID: data[0].id
+      {
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id,
       },
       { status: 201 }
     );

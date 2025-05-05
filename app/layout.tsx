@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import "./globals.css";
 import RefreshHandler from './components/RefreshHandler';
 import LogoutButton from './components/LogoutButton';
-import { getUserFromToken } from '../lib/auth';
+import { getUserFromToken } from './api/lib/auth';
 
 export const metadata = {
   title: "P4SBU",

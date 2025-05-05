@@ -3,7 +3,9 @@
 ## Summary
 CSE 416 Project entailing the solutions to Stony Brook Campus parking. We developed a software to create an organized and simple user experience that our administration can integrate.
 
-## Payments
+## Third Party API's
+
+### Payments
 To get around the requirement of not utilizing any paid 3rd parties, we had to utilize [Stripe](stripe.com) in test mode. Because of this, only test cards will work for payment. Here are all the possible cards, pulled from the [stripe docs](https://docs.stripe.com/testing?testing-method=card-numbers):
 | Brand                        | Number                      | CVC             | Date            |
 |------------------------------|-----------------------------|-----------------|-----------------|

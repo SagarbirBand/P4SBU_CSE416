@@ -1,9 +1,9 @@
 // app/api/login/route.js
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { supabase } from '../../../lib/db.js';
+import { supabase } from '../lib/db.js';
 import { NextResponse } from "next/server";
-import { getUserFromToken } from '../../../lib/auth.js';
+import { getUserFromToken } from '../lib/auth.js';
 
 const JWT_SECRET = process.env.NEXT_PUBLIC_JWT_SECRET;
 

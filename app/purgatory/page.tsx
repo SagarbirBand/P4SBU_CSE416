@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { getUserFromToken } from '../../lib/auth';
+import { getUserFromToken } from '../api/lib/auth';
 import { redirect } from "next/navigation";
 
 export default async function PurgatoryPage() {

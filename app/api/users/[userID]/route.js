@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt';
-import { supabase } from './db.js'//from '../../lib/db.js';
+import { supabase } from '../../lib/db.js'
 import { NextResponse } from "next/server";
 
 export async function GET(request, { params }) {
