@@ -28,7 +28,14 @@ export async function PUT(request) {
 
     const token = jwt.sign({ id: user.id, name: user.name }, JWT_SECRET, { expiresIn });
 
-    const res = NextResponse.json({ message: 'Login successful' });
+    const res = NextResponse.json({ 
+      message: 'Login successful', 
+      user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      isConfirmed: user.isConfirmed,
+    }});
     res.cookies.set('token', token, {
       httpOnly: true,
       secure: process.env.NEXT_PUBLIC_NODE_ENV === 'production',

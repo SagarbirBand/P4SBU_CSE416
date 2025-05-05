@@ -43,7 +43,17 @@ export default function LoginPage() {
         body: JSON.stringify(credentials),
       });
       if (res.ok) {
-        router.push('/dashboard');
+        const data = await res.json();
+        const user = data.user;
+        console.log(user);
+
+        if (user?.isConfirmed) {
+          router.push('/dashboard');
+          console.log("dasg");
+        } else {
+          router.push('/purgatory');
+          console.log("purrg");
+        }
       } else {
         const data = await res.json();
         setError(data.message || 'Login failed');

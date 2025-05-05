@@ -1,8 +1,7 @@
-// app/profile/page.tsx
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 type Reservation = {
   id: number;
@@ -23,18 +22,15 @@ type Fine = {
   description: string;
 };
 
-type Payment = {
-  id: number;
-  userID: number;
-  amount: number;
-  createdAt: string;
-};
-
 export default function ProfilePage() {
   const router = useRouter();
   const [userID, setUserID] = useState<number | null>(null);
+  const [reservations, setActiveReservations] = useState<Reservation[]>([]);
+  const [orderHistory, setOrderHistory] = useState<Reservation[]>([]);
+  const [activeFines, setActiveFines] = useState<Fine[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  // form state
+  // Profile form state
   const [formData, setFormData] = useState({
     email: "",
     name: "",
@@ -46,486 +42,395 @@ export default function ProfilePage() {
   const [backupFormData, setBackupFormData] = useState<typeof formData | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
-  // data sections
-  const [reservations, setReservations] = useState<Reservation[]>([]);
-  const [orderHistory, setOrderHistory] = useState<Reservation[]>([]);
-  const [activeFines, setActiveFines] = useState<Fine[]>([]);
-  const [lotNames, setLotNames] = useState<Record<number, string>>({});
-  const [paymentAmounts, setPaymentAmounts] = useState<Record<number, number>>({});
-
-  // UI state
-  const [expanded, setExpanded] = useState({
-    reservations: true,
-    fines: false,
-    history: false,
-  });
-  const [loading, setLoading] = useState(false);
-
-  // payment modal
+  // Payment modal state
   const [showModal, setShowModal] = useState(false);
   const [selectedFine, setSelectedFine] = useState<Fine | null>(null);
-  const [cardInfo, setCardInfo] = useState({ name: "", number: "", exp: "", cvv: "" });
-  const [paymentError, setPaymentError] = useState("");
+  const [cardInfo, setCardInfo] = useState({ name: '', number: '', exp: '', cvv: '' });
+  const [paymentError, setPaymentError] = useState('');
 
-  // fetch current user
+  const [expandedSections, setExpandedSections] = useState({
+    activeReservations: false,
+    activeFines: false,
+    orderHistory: false,
+  });
+
+  // Fetch user and initialize
   useEffect(() => {
-    async function fetchUser() {
-      const res = await fetch("/api/login?includeUser=true");
-      const data = await res.json();
-      if (!data.loggedIn) return router.push("/login");
-      setUserID(data.user.id);
+    async function fetchUserInfo() {
+      const loginRes = await fetch('/api/login?includeUser=true');
+      const loginData = await loginRes.json();
+      if (!loginData.loggedIn) {
+        router.push('/login');
+        return;
+      }
+      const id = loginData.user.id;
+      setUserID(id);
       setFormData({
-        email: data.user.email,
-        name: data.user.name,
-        password: "",
-        permitType: data.user.permitType,
-        licensePlate: data.user.licensePlate,
-        idNumber: data.user.idNumber,
+        email: loginData.user.email,
+        name: loginData.user.name,
+        password: '',
+        permitType: loginData.user.permitType,
+        licensePlate: loginData.user.licensePlate,
+        idNumber: loginData.user.idNumber,
       });
     }
-    fetchUser();
+    fetchUserInfo();
   }, [router]);
 
-  // fetch reservations, payments, fines, lot names
+  // Fetch reservations & fines
   useEffect(() => {
     if (!userID) return;
     async function fetchData() {
       setLoading(true);
-
-      // --- Reservations ---
+      // Reservations
       const resR = await fetch(`/api/reservations/user/${userID}`);
       const dataR: Reservation[] = await resR.json();
-      const now = Date.now();
-      setReservations(dataR.filter(r => new Date(r.endTime).getTime() > now));
-      setOrderHistory(dataR.filter(r => new Date(r.endTime).getTime() <= now));
-
-      // --- Lot names ---
-      const spotIDs = Array.from(new Set(dataR.map(r => r.spotID)));
-      const names: Record<number, string> = {};
-      await Promise.all(
-        spotIDs.map(async id => {
-          const resp = await fetch(`/api/parkinglots/${id}`);
-          const lot = await resp.json();
-          names[id] = lot.name;
-        })
+      const now = new Date();
+      setActiveReservations(
+        dataR.filter(r => now.getTime() - new Date(r.endTime).getTime() < 24 * 3600 * 1000)
       );
-      setLotNames(names);
-
-      // --- Payments for reservations ---
-      const paymentIDs = Array.from(new Set(dataR.map(r => r.paymentID)));
-      const amounts: Record<number, number> = {};
-      await Promise.all(
-        paymentIDs.map(async pid => {
-          const resp = await fetch(`/api/payments/${pid}`);
-          const pay: Payment = await resp.json();
-          amounts[pid] = pay.amount;
-        })
+      setOrderHistory(
+        dataR.filter(r => now.getTime() - new Date(r.endTime).getTime() >= 24 * 3600 * 1000)
       );
-      setPaymentAmounts(amounts);
-
-      // --- Fines ---
+      // Fines
       const resF = await fetch(`/api/fines/user/${userID}`);
       const dataF: Fine[] = await resF.json();
       setActiveFines(dataF);
-
       setLoading(false);
     }
     fetchData();
   }, [userID]);
 
-  // form handlers
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  const handleEdit = () => {
+  // Profile handlers
+  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  }
+  function handleEdit() {
     setBackupFormData(formData);
     setIsEditing(true);
-  };
-  const handleCancel = () => {
+  }
+  function handleCancel() {
     if (backupFormData) setFormData(backupFormData);
     setIsEditing(false);
-  };
-  const handleSubmit = async (e: React.FormEvent) => {
+  }
+
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const upd = {
+  
+    // Prepare data to be sent to the API
+    const updatedData = {
       email: formData.email,
       name: formData.name,
       permitType: formData.permitType,
       licensePlate: formData.licensePlate,
-      password: formData.password,
+      password: formData.password, 
     };
-    const res = await fetch(`/api/users/${userID}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(upd),
-    });
-    if (res.ok) {
-      setIsEditing(false);
-      setFormData(f => ({ ...f, password: "" }));
-    } else {
-      alert("Failed to update profile.");
-    }
-  };
-
-  // section toggles
-  const toggleSection = (key: "reservations" | "fines" | "history") =>
-    setExpanded(prev => ({ ...prev, [key]: !prev[key] }));
-
-  // fine payment modal
-  const openPayment = (fine: Fine) => {
-    setSelectedFine(fine);
-    setCardInfo({ name: "", number: "", exp: "", cvv: "" });
-    setPaymentError("");
-    setShowModal(true);
-  };
-  const handleCardChange = (e: React.ChangeEvent<HTMLInputElement>) =>
-    setCardInfo(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  const processPayment = async () => {
-    if (!selectedFine) return;
+  
+    // Call API to update user info
     try {
-      const payRes = await fetch("/api/payments/createPayment", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userID: selectedFine.userID, amount: selectedFine.amount }),
+      const res = await fetch(`/api/users/${userID}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedData),
       });
-      if (!payRes.ok) throw new Error("Payment creation failed");
-      const updRes = await fetch(`/api/fines/${selectedFine.id}`, { method: "PUT" });
-      if (!updRes.ok) throw new Error("Updating fine failed");
-      setActiveFines(f => f.map(x => (x.id === selectedFine.id ? { ...x, statusPaid: true } : x)));
-      setShowModal(false);
-    } catch (err: any) {
-      setPaymentError(err.message);
+  
+      const responseData = await res.json();
+  
+      if (res.ok) {
+        // Successfully updated user info
+        setFormData({
+          ...formData,
+          email: responseData.email,
+          name: responseData.name,
+          permitType: responseData.permitType,
+          licensePlate: responseData.licensePlate,
+          password: '', // Clear password after update
+        });
+        setIsEditing(false);
+      } else {
+        // Handle errors from the server
+        console.error('Failed to update:', responseData.error);
+        alert('Failed to update profile. Please try again.');
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      window.location.reload();
     }
-  };
+  }
+
+
+
+  function toggleSection(key: keyof typeof expandedSections) {
+    setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }));
+  }
+
+  // Payment handlers
+  function openPayment(fine: Fine) {
+    setSelectedFine(fine);
+    setCardInfo({ name: '', number: '', exp: '', cvv: '' });
+    setPaymentError('');
+    setShowModal(true);
+  }
+  function handleCardChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setCardInfo({ ...cardInfo, [e.target.name]: e.target.value });
+  }
+
+
+  async function processPayment() {
+    if (!selectedFine) return;
+
+    const paymentData = {
+        userID: selectedFine.userID, 
+        amount: selectedFine.amount,
+    };
+
+    try {
+        //create payment entry
+        const paymentRes = await fetch('/api/payments/createPayment', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(paymentData),
+        });
+
+        const paymentResponseData = await paymentRes.json();
+
+        if (!paymentRes.ok) {
+            throw new Error(paymentResponseData.error || 'Failed to register payment');
+        }
+
+        //update fine
+        const fineUpdateRes = await fetch(`/api/fines/${selectedFine.id}`, {
+            method: 'PUT',
+        });
+
+        const fineUpdateResponseData = await fineUpdateRes.json();
+
+        if (!fineUpdateRes.ok) {
+            throw new Error(fineUpdateResponseData.error || 'Failed to update fine status');
+        }
+
+        //update UI
+        setActiveFines(prev =>
+            prev.map(f =>
+                f.id === selectedFine.id ? { ...f, statusPaid: true } : f
+            )
+        );
+        setShowModal(false);
+
+    } catch (e: any) {
+        setPaymentError(e.message);
+    }
+}
 
   return (
-    <main className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-3xl mx-auto space-y-8">
-        {/* -------- Profile Form -------- */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-4">Profile</h2>
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
-            {/** Email **/}
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Email</label>
-              <input
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                disabled={!isEditing}
-                required
-                className="
-                  mt-1 w-full border-gray-300 rounded-md shadow-sm
-                  disabled:opacity-100 disabled:text-gray-800
-                "
-              />
-            </div>
+    <main className="max-w-4xl mx-auto p-4">
+      <h1 className="text-2xl font-bold text-black mb-6">Profile Page</h1>
 
-            {/** Name **/}
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Name</label>
-              <input
-                name="name"
-                type="text"
-                value={formData.name}
-                onChange={handleChange}
-                disabled={!isEditing}
-                required
-                className="
-                  mt-1 w-full border-gray-300 rounded-md shadow-sm
-                  disabled:opacity-100 disabled:text-gray-800
-                "
-              />
-            </div>
+      {/* Profile Form */}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email address</label>
+          <input
+            type="email" id="email" name="email" value={formData.email} onChange={handleChange}
+            disabled={!isEditing}
+            className="block w-full border border-gray-300 rounded py-2 px-3 text-black disabled:bg-gray-100 disabled:cursor-not-allowed"
+            required
+          />
+        </div>
+        <div>
+          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+          <input
+            type="text" id="name" name="name" value={formData.name} onChange={handleChange}
+            disabled={!isEditing}
+            className="block w-full border border-gray-300 rounded py-2 px-3 text-black disabled:bg-gray-100 disabled:cursor-not-allowed"
+            required
+          />
+        </div>
+        <div>
+          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+          <input
+            type="password" id="password" name="password" value={formData.password} onChange={handleChange}
+            disabled={!isEditing}
+            className="block w-full border border-gray-300 rounded py-2 px-3 text-black disabled:bg-gray-100 disabled:cursor-not-allowed"
+            required
+          />
+        </div>
+        <div>
+          <label htmlFor="permitType" className="block text-sm font-medium text-gray-700 mb-1">Permit Type</label>
+          <select
+            id="permitType" name="permitType" value={formData.permitType} onChange={handleChange}
+            disabled={!isEditing}
+            className="block w-full border border-gray-300 rounded py-2 px-3 text-black disabled:bg-gray-100 disabled:cursor-not-allowed"
+            required
+          >
+            <option value="Resident">Resident</option>
+            <option value="Commuter">Commuter</option>
+            <option value="Commuter Premium">Commuter Premium</option>
+            <option value="Faculty/Staff">Faculty/Staff</option>
+            <option value="ADA">ADA</option>
+            <option value="Other/Misc.">Other/Misc.</option>
+            <option value="None">None</option>
+          </select>
+        </div>
+        <div>
+          <label htmlFor="licensePlate" className="block text-sm font-medium text-gray-700 mb-1">License Plate</label>
+          <input
+            type="text" id="licensePlate" name="licensePlate" value={formData.licensePlate} onChange={handleChange}
+            disabled={!isEditing}
+            className="block w-full border border-gray-300 rounded py-2 px-3 text-black disabled:bg-gray-100 disabled:cursor-not-allowed"
+            required
+          />
+        </div>
+        <div className="flex space-x-4">
+          {isEditing ? (
+            <>
+              <button type="submit" className="bg-black text-white rounded py-2 px-4 hover:bg-gray-800">Save</button>
+              <button type="button" onClick={handleCancel} className="bg-gray-300 text-black rounded py-2 px-4 hover:bg-gray-400">Cancel</button>
+            </>
+          ) : (
+            <button type="button" onClick={handleEdit} data-cy="edit-profile" className="bg-black text-white rounded py-2 px-4 hover:bg-gray-800">Edit</button>
+          )}
+        </div>
+      </form>
 
-            <div className="grid grid-cols-2 gap-4">
-              {/** Password **/}
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Password</label>
-                <input
-                  name="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  disabled={!isEditing}
-                  required
-                  className="
-                    mt-1 w-full border-gray-300 rounded-md shadow-sm
-                    disabled:opacity-100 disabled:text-gray-800
-                  "
-                />
-              </div>
-
-              {/** Permit Type **/}
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Permit Type</label>
-                <select
-                  name="permitType"
-                  value={formData.permitType}
-                  onChange={handleChange}
-                  disabled={!isEditing}
-                  required
-                  className="
-                    mt-1 w-full border-gray-300 rounded-md shadow-sm
-                    disabled:opacity-100 disabled:text-gray-800
-                  "
-                >
-                  <option>Resident</option>
-                  <option>Commuter</option>
-                  <option>Commuter Premium</option>
-                  <option>Faculty/Staff</option>
-                  <option>ADA</option>
-                  <option>Other/Misc.</option>
-                  <option>None</option>
-                </select>
-              </div>
-            </div>
-
-            {/** License Plate **/}
-            <div>
-              <label className="block text-sm font-medium text-gray-700">License Plate</label>
-              <input
-                name="licensePlate"
-                type="text"
-                value={formData.licensePlate}
-                onChange={handleChange}
-                disabled={!isEditing}
-                required
-                className="
-                  mt-1 w-full border-gray-300 rounded-md shadow-sm
-                  disabled:opacity-100 disabled:text-gray-800
-                "
-              />
-            </div>
-
-            {/** Buttons **/}
-            <div className="pt-4">
-              {isEditing ? (
-                <div className="flex space-x-4">
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-indigo-700"
-                  >
-                    Save
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCancel}
-                    className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
-                  >
-                    Cancel
-                  </button>
-                </div>
+      <div className="mt-10">
+        {/* Active Reservations section */}
+        <div className="border-b border-gray-200 pb-2 mb-4">
+          <button type="button" onClick={() => toggleSection('activeReservations')} className="w-full flex justify-between items-center text-left">
+            <span className="text-lg font-semibold text-black">Active Reservations</span>
+            <span className="text-lg text-black">{expandedSections.activeReservations ? '▲' : '▼'}</span>
+          </button>
+          {expandedSections.activeReservations && (
+            <div className="mt-2 text-black space-y-2">
+              {reservations.length > 0 ? (
+                reservations.map(res => (
+                  <div key={res.id} className="border rounded p-3 bg-gray-50 text-sm">
+                    <p><strong>Start:</strong> {new Date(res.startTime).toLocaleString()}</p>
+                    <p><strong>End:</strong> {new Date(res.endTime).toLocaleString()}</p>
+                  </div>
+                ))
               ) : (
-                <button
-                  type="button"
-                  onClick={handleEdit}
-                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-indigo-700"
-                >
-                  Edit Profile
-                </button>
+                <p>No active reservations at this time.</p>
               )}
             </div>
-          </form>
+          )}
         </div>
 
-        {/* -------- Data Sections -------- */}
-        <div className="space-y-6">
-          {/** Active Reservations **/}
-          <section className="bg-white shadow rounded-lg overflow-hidden">
-            <header
-              className="flex justify-between items-center px-6 py-4 cursor-pointer"
-              onClick={() => toggleSection("reservations")}
-            >
-              <h3 className="text-lg font-medium text-gray-800">Active Reservations</h3>
-              <span>{expanded.reservations ? "▲" : "▼"}</span>
-            </header>
-            {expanded.reservations && (
-              <div className="border-t px-6 py-4 space-y-4">
-                {reservations.length > 0 ? (
-                  reservations.map(r => (
-                    <div
-                      key={r.id}
-                      className="bg-gray-50 border rounded-lg p-4 flex flex-col space-y-1"
-                    >
-                      <div className="flex justify-between text-sm text-gray-700">
-                        <span><strong>Lot:</strong> {lotNames[r.spotID] || "Loading..."}</span>
-                        <span>
-                          <strong>Amount:</strong>{" "}
-                          {paymentAmounts[r.paymentID] != null
-                            ? `$${paymentAmounts[r.paymentID].toFixed(2)}`
-                            : "Loading..."}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-sm text-gray-700">
-                        <span>
-                          <strong>Start:</strong>{" "}
-                          {new Date(r.startTime).toLocaleString()}
-                        </span>
-                        <span>
-                          <strong>End:</strong>{" "}
-                          {new Date(r.endTime).toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-gray-500">No active reservations at this time.</p>
-                )}
-              </div>
-            )}
-          </section>
-
-          {/** Active Fines **/}
-          <section className="bg-white shadow rounded-lg overflow-hidden">
-            <header
-              className="flex justify-between items-center px-6 py-4 cursor-pointer"
-              onClick={() => toggleSection("fines")}
-            >
-              <h3 className="text-lg font-medium text-gray-800">Active Fines</h3>
-              <span>{expanded.fines ? "▲" : "▼"}</span>
-            </header>
-            {expanded.fines && (
-              <div className="border-t px-6 py-4 space-y-4">
-                {loading ? (
-                  <p className="text-gray-500">Loading fines...</p>
-                ) : activeFines.length > 0 ? (
-                  activeFines.map(f => (
-                    <div key={f.id} className="bg-gray-50 border rounded-lg p-4 space-y-1">
-                      <p className="text-sm text-gray-700">
-                        <strong>Assigned:</strong>{" "}
-                        {new Date(f.createdAt).toLocaleString()}
-                      </p>
-                      <p className="text-sm text-gray-700">
-                        <strong>Pay By:</strong>{" "}
-                        {new Date(f.payBy).toLocaleDateString()}
-                      </p>
-                      <p className="text-sm text-gray-700">
-                        <strong>Amount:</strong> ${f.amount.toFixed(2)}
-                      </p>
-                      <p className="text-sm text-gray-700">
-                        <strong>Description:</strong> {f.description}
-                      </p>
-                      <p className="text-sm">
-                        <strong>Status:</strong>{" "}
-                        <span className={f.statusPaid ? "text-green-600" : "text-red-600"}>
-                          {f.statusPaid ? "Paid" : "Unpaid"}
-                        </span>
-                      </p>
-                      {!f.statusPaid && (
-                        <button
-                          onClick={() => openPayment(f)}
-                          className="mt-2 px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700"
-                        >
-                          Pay Now
-                        </button>
-                      )}
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-gray-500">No active fines at this time.</p>
-                )}
-              </div>
-            )}
-          </section>
-
-          {/** Order History **/}
-          <section className="bg-white shadow rounded-lg overflow-hidden">
-            <header
-              className="flex justify-between items-center px-6 py-4 cursor-pointer"
-              onClick={() => toggleSection("history")}
-            >
-              <h3 className="text-lg font-medium text-gray-800">Order History</h3>
-              <span>{expanded.history ? "▲" : "▼"}</span>
-            </header>
-            {expanded.history && (
-              <div className="border-t px-6 py-4 space-y-4">
-                {orderHistory.length > 0 ? (
-                  orderHistory.map(r => (
-                    <div key={r.id} className="bg-gray-50 border rounded-lg p-4 space-y-1">
-                      <div className="flex justify-between text-sm text-gray-700">
-                        <span><strong>Lot:</strong> {lotNames[r.spotID] || "Loading..."}</span>
-                        <span>
-                          <strong>Amount:</strong>{" "}
-                          {paymentAmounts[r.paymentID] != null
-                            ? `$${paymentAmounts[r.paymentID].toFixed(2)}`
-                            : "Loading..."}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-sm text-gray-700">
-                        <span>
-                          <strong>Start:</strong>{" "}
-                          {new Date(r.startTime).toLocaleString()}
-                        </span>
-                        <span>
-                          <strong>End:</strong>{" "}
-                          {new Date(r.endTime).toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-gray-500">No past reservations found.</p>
-                )}
-              </div>
-            )}
-          </section>
+        {/* Active Fines section */}
+        <div className="border-b border-gray-200 pb-2 mb-4">
+          <button type="button" onClick={() => toggleSection('activeFines')} className="w-full flex justify-between items-center text-left">
+            <span className="text-lg font-semibold text-black">Active Fines</span>
+            <span className="text-lg text-black">{expandedSections.activeFines ? '▲' : '▼'}</span>
+          </button>
+          {expandedSections.activeFines && (
+            <div className="mt-2 text-black space-y-4">
+              {loading ? (
+                <p>Loading fines...</p>
+              ) : activeFines.length > 0 ? (
+                activeFines.map(f => (
+                  <div key={f.id} className="border rounded p-3 bg-gray-50 text-sm">
+                    <p><strong>Date Assigned:</strong> {new Date(f.createdAt).toLocaleString()}</p>
+                    <p><strong>Pay By:</strong> {new Date(f.payBy).toLocaleDateString()}</p>
+                    <p><strong>Amount:</strong> ${f.amount.toFixed(2)}</p>
+                    <p><strong>Description:</strong> {f.description}</p>
+                    <p><strong>Status:</strong>{' '}
+                      <span className={f.statusPaid ? 'text-green-500' : 'text-red-500'}>
+                        {f.statusPaid ? 'Paid' : 'Unpaid'}
+                      </span>
+                    </p>
+                    {!f.statusPaid && (
+                      <button onClick={() => openPayment(f)} className="mt-2 bg-red-600 text-white py-1 px-4 rounded hover:bg-red-700">Pay</button>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <p>No active fines at this time.</p>
+              )}
+            </div>
+          )}
         </div>
 
-        {/** Payment Modal **/}
-        {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
-              <h4 className="text-lg font-semibold text-gray-800 mb-4">Payment for Fine</h4>
-              {paymentError && <p className="text-red-600 mb-2">{paymentError}</p>}
-              <input
-                name="name"
-                placeholder="Cardholder Name"
-                value={cardInfo.name}
-                onChange={handleCardChange}
-                className="w-full mb-2 border-gray-300 rounded-md shadow-sm p-2"
-              />
-              <input
-                name="number"
-                placeholder="Card Number"
-                value={cardInfo.number}
-                onChange={handleCardChange}
-                className="w-full mb-2 border-gray-300 rounded-md shadow-sm p-2"
-              />
-              <div className="flex space-x-2">
-                <input
-                  name="exp"
-                  placeholder="MM/YY"
-                  value={cardInfo.exp}
-                  onChange={handleCardChange}
-                  className="w-1/2 mb-2 border-gray-300 rounded-md shadow-sm p-2"
-                />
-                <input
-                  name="cvv"
-                  placeholder="CVV"
-                  value={cardInfo.cvv}
-                  onChange={handleCardChange}
-                  className="w-1/2 mb-2 border-gray-300 rounded-md shadow-sm p-2"
-                />
-              </div>
-              <div className="mt-4 flex justify-end space-x-2">
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border rounded-md text-gray-800 hover:bg-gray-100"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={processPayment}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-                >
-                  Submit
-                </button>
-              </div>
+        {/* Order History section */}
+        <div className="border-b border-gray-200 pb-2 mb-4">
+          <button type="button" onClick={() => toggleSection('orderHistory')} className="w-full flex justify-between items-center text-left">
+            <span className="text-lg font-semibold text-black">Order History</span>
+            <span className="text-lg text-black">{expandedSections.orderHistory ? '▲' : '▼'}</span>
+          </button>
+          {expandedSections.orderHistory && (
+            <div className="mt-2 text-black space-y-2">
+              {orderHistory.length > 0 ? (
+                orderHistory.map(res => (
+                  <div key={res.id} className="border rounded p-3 bg-gray-50 text-sm">
+                    <p><strong>Start:</strong> {new Date(res.startTime).toLocaleString()}</p>
+                    <p><strong>End:</strong> {new Date(res.endTime).toLocaleString()}</p>
+                  </div>
+                ))
+              ) : (
+                <p>No active reservations at this time.</p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Payment Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded shadow-lg w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4 text-black">Enter Payment Info</h3>
+            {paymentError && (
+              <p className="text-red-600 mb-2">{paymentError}</p>
+            )}
+            <input
+              name="name"
+              placeholder="Cardholder Name"
+              value={cardInfo.name}
+              onChange={handleCardChange}
+              className="w-full mb-2 border p-2 text-black placeholder-gray-700"
+            />
+            <input
+              name="number"
+              placeholder="Card Number"
+              value={cardInfo.number}
+              onChange={handleCardChange}
+              className="w-full mb-2 border p-2 text-black placeholder-gray-700"
+            />
+            <input
+              name="exp"
+              placeholder="MM/YY"
+              value={cardInfo.exp}
+              onChange={handleCardChange}
+              className="w-full mb-2 border p-2 text-black placeholder-gray-700"
+            />
+            <input
+              name="cvv"
+              placeholder="CVV"
+              value={cardInfo.cvv}
+              onChange={handleCardChange}
+              className="w-full mb-4 border p-2 text-black placeholder-gray-700"
+            />
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setShowModal(false)}
+                className="px-4 py-2 border rounded text-black"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={processPayment}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Submit
+              </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </main>
   );
 }

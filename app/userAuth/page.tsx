@@ -53,9 +53,18 @@ export default function UserAuthPage() {
   }
 
   // Deny a user (remove from pending list)
-  function handleDeny(userId: number) {
-    // option to call a DELETE or PATCH endpoint here
-    setUsers((prev: any[]) => prev.filter((u: { id: number; }) => u.id !== userId));
+  async function handleDeny(userId: number) {
+    try {
+      const res = await fetch(`/api/users/${userId}/deny`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: userId }),
+      });
+      if (!res.ok) throw new Error('Failed to deny');
+      setUsers((prev: any[]) => prev.filter((u: { id: number; }) => u.id !== userId));
+    } catch (e: any) {
+      setError(e.message);
+    }
   }
 
   // Filter users by name, email, licensePlate, or id
