@@ -1,16 +1,17 @@
+
+
 import { supabase } from './db.js';
 import { NextResponse } from "next/server";
 
-export async function GET(request, { params }) {
-  const { userName } = params;
+export async function DELETE(request, { params }) {
+  const { userID } = params;
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('users')
-      .select('*')
-      .eq('name', userName)
-      .single();
+      .delete()
+      .eq('id', userID);
     if (error) throw error;
-    return NextResponse.json(data);
+    return NextResponse.json({ success: true });
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

@@ -16,6 +16,22 @@ export async function POST(request) {
   let name = fullName;
 
   try {
+
+
+    const { data: existingUser, error: fetchError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', email)
+      .single();
+
+    if (existingUser) {
+      return NextResponse.json(
+        { error: 'User with email already exists' },
+        { status: 400 }
+      );
+    }
+
+
     const { data, error } = await supabase
       .from('users')
       .insert([{

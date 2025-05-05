@@ -1,8 +1,7 @@
 import { supabase } from './db.js';
 import { NextResponse } from "next/server";
 
-export async function GET(request, props) {
-  const params = await props.params;
+export async function GET(request, { params }) {
   const { lotName } = params;
   try {
     const { data, error } = await supabase
