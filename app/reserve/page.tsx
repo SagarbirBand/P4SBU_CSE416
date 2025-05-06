@@ -964,9 +964,6 @@ const handleReservationSubmit = async () => {
                 selectedReservation.permitType
               ).toFixed(2)}</strong>
             </p>
-            <div className="border p-2 mb-4">
-              <CardElement options={{ hidePostalCode: true }} />
-            </div>
             {(calculateCost(selectedReservation.start, selectedReservation.end, selectedReservation.meterRate, selectedReservation.permitType, quantity) > 0
               && quantity < 3
               && activeCount < 3 ) && (
