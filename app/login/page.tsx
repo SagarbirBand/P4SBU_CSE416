@@ -1,78 +1,137 @@
-'use client';
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import BGIMG from '../components/BGIMG';
-import FormInput from '../components/FormInput';
+'use client'
 
-export default function LoginPage() {
-  const router = useRouter();
-  const [credentials, setCredentials] = useState({ email: '', password: '', stayLoggedIn: false });
-  const [error, setError] = useState('');
+import type { FC, ChangeEvent, FormEvent, ReactElement } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import BGIMG from '../components/BGIMG'
+import FormInput from '../components/FormInput'
 
-  // On mount, check if the user is already logged in
-  /*useEffect(() => {
-    async function checkLogin() {
+/** --- Types --- */
+interface Credentials {
+  email: string
+  password: string
+  stayLoggedIn: boolean
+}
+
+interface UserResponse {
+  id: string
+  name: string
+  email: string
+  permitType: string
+  isAdmin: boolean
+  licensePlate: string
+  address: string
+  isConfirmed: boolean
+}
+
+interface LoginSuccessResponse {
+  message: string
+  user: UserResponse
+}
+
+interface LoginErrorResponse {
+  error: string
+}
+
+type LoginResponse = LoginSuccessResponse | LoginErrorResponse
+
+interface AuthStatusResponse {
+  loggedIn: boolean
+  user?: UserResponse
+}
+
+/** --- Component --- */
+const LoginPage: FC = (): ReactElement | null => {
+  const router = useRouter()
+
+  // Form state
+  const [credentials, setCredentials] = useState<Credentials>({
+    email: '',
+    password: '',
+    stayLoggedIn: false
+  })
+  const [error, setError] = useState<string>('')
+  const [checking, setChecking] = useState<boolean>(true)
+
+  // Redirect immediately if already logged in
+  useEffect(() => {
+    const checkLogin = async (): Promise<void> => {
       try {
-        const res = await fetch('/api/login', { method: 'GET' });
-        const data = await res.json();
+        const res: Response = await fetch('/api/login?includeUser=false', {
+          method: 'GET',
+          cache: 'no-store'
+        })
+        const data: AuthStatusResponse = await res.json()
         if (data.loggedIn) {
-          router.push('/');
+          void router.replace('/')
+        } else {
+          setChecking(false)
         }
-      } catch (err) {
-        console.error('Error checking login status', err);
+      } catch {
+        // On network error, still show form
+        setChecking(false)
       }
     }
-    checkLogin();
-  }, [router]);*/
+    void checkLogin()
+  }, [router])
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
-    setCredentials((prev) => ({
+  // Avoid flashing the form while checking auth
+  if (checking) return null
+
+  // Update credentials from inputs
+  const handleChange = (e: ChangeEvent<HTMLInputElement>): void => {
+    const { name, value, type, checked } = e.target
+    setCredentials(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
-  };
+      [name]: type === 'checkbox' ? checked : value
+    }))
+  }
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Submit credentials, handle all server-side and network errors
+  const handleLogin = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
+    e.preventDefault()
+    setError('')
+
     try {
-      const res = await fetch('/api/login', {
+      const res: Response = await fetch('/api/login', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(credentials),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const user = data.user;
-        console.log(user);
+        body: JSON.stringify(credentials)
+      })
+      const data = (await res.json()) as LoginResponse
 
-        if (user?.isConfirmed) {
-          router.push('/');
-          console.log("dasg");
-        } else {
-          router.push('/purgatory');
-          console.log("purrg");
-        }
-      } else {
-        const data = await res.json();
-        setError(data.message || 'Login failed');
+      if (!res.ok) {
+        // Surface server error message if provided
+        setError('error' in data ? data.error : 'Login failed—please try again.')
+        return
       }
-    } catch (err) {
-      console.error('Login error:', err);
-      setError('An unexpected error occurred');
+
+      // On success, redirect based on approval status
+      const { user } = data as LoginSuccessResponse
+      if (user.isConfirmed) {
+        void router.replace('/')
+      } else {
+        void router.replace('/purgatory')
+      }
+    } catch {
+      // Network or unexpected error
+      setError('Network error—please check your connection.')
     }
-  };
+  }
 
   return (
     <main className="relative flex flex-col items-center justify-center">
       <BGIMG url="/map-bg.jpg" />
+
       <form
         onSubmit={handleLogin}
         className="relative z-10 text-black bg-white p-6 rounded shadow-md w-full max-w-md"
       >
         <h2 className="text-2xl font-bold mb-4">Login</h2>
+
         {error && <p className="text-red-500 mb-4">{error}</p>}
+
         <FormInput
           label="Email:"
           type="email"
@@ -81,6 +140,7 @@ export default function LoginPage() {
           onChange={handleChange}
           required
         />
+
         <FormInput
           label="Password:"
           type="password"
@@ -89,6 +149,7 @@ export default function LoginPage() {
           onChange={handleChange}
           required
         />
+
         <label className="block mb-4">
           <input
             type="checkbox"
@@ -99,12 +160,14 @@ export default function LoginPage() {
           />
           Stay logged in
         </label>
+
         <button
           type="submit"
           className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
         >
           Login
         </button>
+
         <p className="mt-4 text-center">
           Don't have an account?{' '}
           <Link href="/register" className="text-blue-600 hover:text-blue-700">
@@ -113,5 +176,7 @@ export default function LoginPage() {
         </p>
       </form>
     </main>
-  );
+  )
 }
+
+export default LoginPage

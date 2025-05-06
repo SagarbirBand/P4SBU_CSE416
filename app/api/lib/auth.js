@@ -7,7 +7,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 export async function getUserFromToken(token) {
   let payload;
   try {
-    payload =  jwt.verify(token, JWT_SECRET);
+    payload = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] })
   } catch (error) {
     return null;
   }
