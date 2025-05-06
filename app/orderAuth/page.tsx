@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 type Order = {
   id: number;
@@ -19,6 +20,21 @@ export default function OrderAuthPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  const [userID, setUserID] = useState(0);
+      const router = useRouter();
+      useEffect(() => {
+        async function fetchUser() {
+          const res = await fetch("/api/login?includeUser=true");
+          const data = await res.json();
+          if (!data.loggedIn || !data.user || !data.user.isAdmin) {
+            router.push("/login");
+            return;
+          }
+          setUserID(data.user.id);
+        }
+        fetchUser();
+      }, [router]);
 
   useEffect(() => {
     async function fetchOrders() {

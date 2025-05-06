@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Card from "../components/ui/card.tsx";
+import { useRouter } from 'next/navigation';
 import {
   LineChart,
   Line,
@@ -29,8 +30,23 @@ export default function AdminAnalyticsPage() {
   const [reservationsCount, setReservationsCount] = useState<number>(0);
   const [totalUsersCount, setTotalUsersCount]     = useState<number>(0);
   const [topBookings, setTopBookings]             = useState<BookingData[]>([]);
-
   const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
+
+    const [userID, setUserID] = useState(0);
+    const router = useRouter();
+    useEffect(() => {
+      async function fetchUser() {
+        const res = await fetch("/api/login?includeUser=true");
+        const data = await res.json();
+        if (!data.loggedIn || !data.user || !data.user.isAdmin) {
+          router.push("/login");
+          return;
+        }
+        setUserID(data.user.id);
+      }
+      fetchUser();
+    }, [router]);
+
 
   useEffect(() => {
     async function loadAnalytics() {

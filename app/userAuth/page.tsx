@@ -16,8 +16,23 @@ export default function UserAuthPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const [userID, setUserID] = useState(0);
   const router = useRouter();
+  useEffect(() => {
+    async function fetchUser() {
+      const res = await fetch("/api/login?includeUser=true");
+      const data = await res.json();
+      if (!data.loggedIn || !data.user || !data.user.isAdmin) {
+        router.push("/login");
+        return;
+      }
+      setUserID(data.user.id);
+    }
+    fetchUser();
+  }, [router]);
 
+
+  
   // Fetch all unauthenticated users
   useEffect(() => {
     async function fetchUsers() {
