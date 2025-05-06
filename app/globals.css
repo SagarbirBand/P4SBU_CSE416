@@ -37,6 +37,10 @@ main {
 }
 
 @layer components {
-  .nav-btn-1 { @apply text-black hover:text-red-600; }
-  .nav-btn-2 { @apply bg-gray-200 text-black px-4 py-2 rounded hover:bg-gray-300; }
+  .nav-btn-1 {
+    @apply inline-block align-middle leading-none text-black hover:text-red-600;
+  }
+  .nav-btn-2 {
+    @apply inline-block align-middle leading-none bg-gray-200 text-black px-4 py-2 rounded hover:bg-gray-300;
+  }
 }
