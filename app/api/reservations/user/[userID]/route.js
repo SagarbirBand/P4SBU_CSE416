@@ -2,7 +2,7 @@ import { supabase } from '../../../lib/db.js';
 import { NextResponse } from "next/server";
 
 export async function GET(request, { params }) {
-  const { userID } = params;
+  const { userID } = await params;
   try {
     const { data, error } = await supabase
       .from('reservations')

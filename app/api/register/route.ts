@@ -87,6 +87,7 @@ function signJwt(
 export async function POST(
   request: NextRequest
 ): Promise<NextResponse<SuccessResponse | ErrorResponse>> {
+
   // 1) Validate the request body
   let body: RegisterRequest
   try {
@@ -106,7 +107,7 @@ export async function POST(
     .from('users')
     .select('id')
     .eq('email', email)
-    .single()
+    .maybeSingle()
 
   if (fetchError) {
     return NextResponse.json(

@@ -108,7 +108,7 @@ const RegisterPage: FC = (): ReactElement | null => {
       <BGIMG url="/map-bg.jpg" />
       <form
         onSubmit={handleRegister}
-        className="relative z-10 text-black bg-white p-6 rounded shadow-md w-full max-w-md"
+        className="relative z-10 text-black bg-white p-6 rounded shadow-md w-full max-w-md mt-5 max-h-[90%] overflow-y-auto"
       >
         <h2 className="text-2xl font-bold mb-4">Register</h2>
         {error && <p className="text-red-500 mb-4">{error}</p>}
