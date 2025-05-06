@@ -1,6 +1,16 @@
-import { error } from 'console';
 import { supabase } from './db.js';
 import { NextResponse } from "next/server";
+
+
+
+export async function GET(request) {
+  // necessary for build
+  return NextResponse.json({
+    message: 'Use POST method to fetch active reservations',
+    status: 200
+  });
+}
+
 
 export async function POST(request) {
   try {

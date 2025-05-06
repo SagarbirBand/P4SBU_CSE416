@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 export async function POST(request) {
   const { lotID, permitType, count, currentAvailable } = await request.json();
 
-  if (!lotID || !permitType || count !== undefined || currentAvailable !== undefined) {
+  if (!lotID || !permitType || !count|| !currentAvailable) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 

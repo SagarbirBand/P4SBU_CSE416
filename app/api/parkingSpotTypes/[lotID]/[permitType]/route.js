@@ -1,8 +1,30 @@
-import { error } from 'console';
 import { supabase } from './db.js';
 import { NextResponse } from "next/server";
 
-export async function PUT(request, { params }) { //we get data but complexity of this request necessitates POST since we have json body
+
+export async function GET(request, { params }) {
+  const { lotID, permitType: encodedPermitType } = params;
+  const permitType = decodeURIComponent(encodedPermitType);
+
+  try {
+    const { data, error } = await supabase
+      .from('parkingSpotTypes')
+      .select('*')
+      .eq('lotID', lotID)
+      .eq('permitType', permitType);
+    
+    if (error) throw error;
+    
+    return NextResponse.json(data);
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+
+
+
+export async function PUT(request, { params }) { 
   const { lotID, permitType: encodedPermitType } = params;
   const permitType = decodeURIComponent(encodedPermitType);
   const { count, currentAvailable } = await request.json();
