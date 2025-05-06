@@ -5,7 +5,7 @@ import { supabase } from '../lib/db.js';
 import { NextResponse } from "next/server";
 import { getUserFromToken } from '../lib/auth.js';
 
-const JWT_SECRET = process.env.NEXT_PUBLIC_JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET;
 
 export async function PUT(request) {
   const { email, password, stayLoggedIn = false } = await request.json();
