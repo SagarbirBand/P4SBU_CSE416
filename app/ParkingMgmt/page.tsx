@@ -175,12 +175,13 @@ export default function ParkingManagementPage() {
         } 
         else if (prevCount !== currCount && currCount > 0) {
           // update
+          let newCurr = currCount - activeRes;
           return fetch(`/api/parkingSpotTypes/${lotId}/${encodeURIComponent(name)}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               count: currCount,
-              currentAvailable: currCount - activeRes, //can be negative but its okay. Worst case delete and then recreate upon SHRINKING
+              currentAvailable: newCurr, //can be negative but its okay. Worst case delete and then recreate upon SHRINKING
             }),
           });
         }

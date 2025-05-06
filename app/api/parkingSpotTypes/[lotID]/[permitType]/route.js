@@ -7,7 +7,8 @@ export async function PUT(request, { params }) { //we get data but complexity of
   const permitType = decodeURIComponent(encodedPermitType);
   const { count, currentAvailable } = await request.json();
 
-  if(!lotID || !permitType || !count || !currentAvailable) { return NextResponse.json({ error: 'Missing required fields' }, { status: 400 }); }
+
+  if(!lotID || !permitType || count === undefined || currentAvailable === undefined) { return NextResponse.json({ error: 'Missing required fields' }, { status: 400 }); }
 
   try {
     const { data, error } = await supabase
