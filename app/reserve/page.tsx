@@ -462,64 +462,80 @@ const handleReservationSubmit = async () => {
   const amount = calculateCost(start, end, meterRate, permitType, quantity);
   const needsAdmin = quantity >= 3 || (activeCount + quantity) >= 3;
 
-  // Paid + admin‐requesting: skip Stripe, just notify
   if (needsAdmin) {
     setShowModal(false);
     alert('Your paid reservation request has been submitted for approval.');
     return;
   }
 
-  // Paid + immediate: run Stripe
   if (!stripe || !elements) {
     setPaymentError('Stripe has not loaded yet.');
     return;
   }
 
-  // 1) Create Stripe PaymentIntent
-  const init = await fetch('/api/payments/createPayment', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userID, amount }),
-  });
-  if (!init.ok) {
-    const err = await init.json();
-    setPaymentError(err.error || 'Payment init failed');
-    return;
-  }
-  const { clientSecret, paymentIntentId } = await init.json();
+  let clientSecret: string;
+  let paymentID: number;
 
-  // 2) Confirm with Stripe.js
-  const { error: payErr, paymentIntent } = await stripe.confirmCardPayment(
-    clientSecret,
-    { payment_method: { card: elements.getElement(CardElement)! } }
-  );
-  if (payErr || paymentIntent?.status !== 'succeeded') {
-    setPaymentError(payErr?.message || 'Payment failed');
-    return;
-  }
-
-  // 3) Create 'quantity' reservations with same paymentIntentId
-  for (let i = 0; i < quantity; i++) {
-    const res = await fetch('/api/reservations/createReservation', {
+  try {
+    // Step 1: Create payment
+    const initRes = await fetch('/api/payments/createPayment', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userID,
-        spotID: spotTypeID,
-        paymentID: parseInt(paymentIntent.id, 10),
-        startTime: start,
-        endTime: end,
-      }),
+      body: JSON.stringify({ userID, amount }),
     });
-    if (!res.ok) {
-      const err = await res.json();
-      setPaymentError(err.error || 'Reservation failed');
-      return;
+
+    if (!initRes.ok) {
+      const err = await initRes.json();
+      throw new Error(err.error || 'Payment init failed');
     }
+
+    const result = await initRes.json();
+    clientSecret = result.clientSecret;
+    paymentID = result.paymentID;
+    if (!paymentID) throw new Error('paymentID not returned from server');
+  } catch (err: any) {
+    setPaymentError(err.message || 'Failed to initialize payment');
+    return;
   }
 
-  setShowModal(false);
-  alert('Reservation successful!');
+  // Step 2+: Stripe confirmation and reservation creation
+  stripe.confirmCardPayment(clientSecret, {
+    payment_method: { card: elements.getElement(CardElement)! }
+  })
+    .then(async ({ error, paymentIntent }) => {
+      if (error || paymentIntent?.status !== 'succeeded') {
+        setPaymentError(error?.message || 'Payment failed');
+        return;
+      }
+
+      // Step 3: Create reservations
+      for (let i = 0; i < quantity; i++) {
+        const res = await fetch('/api/reservations/createReservation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userID,
+            spotID: spotTypeID,
+            paymentID,
+            startTime: start,
+            endTime: end,
+          }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          setPaymentError(err.error || 'Reservation failed');
+          return;
+        }
+      }
+
+      setShowModal(false);
+      alert('Reservation successful!');
+    })
+    .catch(err => {
+      console.error(err);
+      setPaymentError(err.message || 'An unexpected error occurred');
+    });
 };
 
 
