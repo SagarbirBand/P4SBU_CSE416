@@ -22,11 +22,12 @@ export default function ContactPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    let type = "User Feedback";
     try {
-      const res = await fetch('/api/contact', {
+      const res = await fetch('/api/reports', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({type: type, data: formData}),
       });
       if (res.ok) {
         setStatus('Message sent successfully!');
