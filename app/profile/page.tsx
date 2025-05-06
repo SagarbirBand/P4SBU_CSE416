@@ -1,435 +1,362 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { loadStripe } from "@stripe/stripe-js";
+import {
+  Elements,
+  CardElement,
+  useStripe,
+  useElements
+} from "@stripe/react-stripe-js";
+import type { StripeElements } from "@stripe/stripe-js";
 
-type Reservation = {
+// Data interfaces
+interface Reservation {
   id: number;
   userID: number;
   spotID: number;
   paymentID: number;
   startTime: string;
   endTime: string;
-};
-
-type Fine = {
+}
+interface Fine {
   id: number;
   userID: number;
   amount: number;
   createdAt: string;
-  statusPaid: boolean;
-  payBy: string;
   description: string;
-};
+  statusPaid: boolean;
+}
+interface Payment {
+  id: number;
+  userID: number;
+  amount: number;
+  createdAt: string;
+}
+interface SpotType {
+  id: number;
+  lotID: number;
+}
+interface Lot {
+  id: number;
+  name: string;
+}
 
+// Load Stripe
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+
+// Payment modal component
+function PaymentModal({
+  fine,
+  onClose,
+  onPaid
+}: {
+  fine: Fine;
+  onClose: () => void;
+  onPaid: (id: number) => void;
+}) {
+  const stripe = useStripe();
+  const elements = useElements() as StripeElements;
+  const [errorMsg, setErrorMsg] = useState<string>("");
+
+  const handlePay = async () => {
+    if (!stripe || !elements) {
+      setErrorMsg("Stripe not loaded");
+      return;
+    }
+    try {
+      // Create payment intent
+      const initRes = await fetch("/api/payments/createPayment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userID: fine.userID, amount: fine.amount })
+      });
+      const { clientSecret } = await initRes.json();
+
+      // Confirm card payment
+      const card = elements.getElement(CardElement);
+      if (!card) throw new Error("Card element not found");
+      const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: { card }
+      });
+      if (error || paymentIntent?.status !== "succeeded") {
+        throw new Error(error?.message || "Payment failed");
+      }
+
+      // Mark fine as paid on server
+      await fetch(`/api/fines/${fine.id}`, { method: "PUT" });
+      onPaid(fine.id);
+      onClose();
+    } catch (err: any) {
+      setErrorMsg(err.message);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+      <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+        <h4 className="text-lg font-semibold mb-4">Pay Fine ${fine.amount.toFixed(2)}</h4>
+        {errorMsg && <p className="text-red-600 mb-2">{errorMsg}</p>}
+        <CardElement options={{ hidePostalCode: true }} className="border p-2 mb-4" />
+        <div className="flex justify-end space-x-2">
+          <button onClick={onClose} className="px-4 py-2 border rounded">Cancel</button>
+          <button onClick={handlePay} className="px-4 py-2 bg-indigo-600 text-white rounded">Pay</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Main Profile Page
 export default function ProfilePage() {
   const router = useRouter();
   const [userID, setUserID] = useState<number | null>(null);
-  const [reservations, setActiveReservations] = useState<Reservation[]>([]);
-  const [orderHistory, setOrderHistory] = useState<Reservation[]>([]);
-  const [activeFines, setActiveFines] = useState<Fine[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-
-  // Profile form state
-  const [formData, setFormData] = useState({
-    email: "",
-    name: "",
-    password: "",
-    permitType: "",
-    licensePlate: "",
-    idNumber: "",
-  });
+  const [formData, setFormData] = useState({ email: "", name: "", password: "", permitType: "", licensePlate: "", idNumber: "" });
   const [backupFormData, setBackupFormData] = useState<typeof formData | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
-  // Payment modal state
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [orderHistory, setOrderHistory] = useState<Reservation[]>([]);
+  const [activeFines, setActiveFines] = useState<Fine[]>([]);
+  
+  const [lotNames, setLotNames] = useState<Record<number,string>>({});
+  const [paymentAmounts, setPaymentAmounts] = useState<Record<number,number>>({});
+
+  const [expanded, setExpanded] = useState({ reservations: true, fines: false, history: false });
+  const [loading, setLoading] = useState(false);
+  
   const [showModal, setShowModal] = useState(false);
   const [selectedFine, setSelectedFine] = useState<Fine | null>(null);
-  const [cardInfo, setCardInfo] = useState({ name: '', number: '', exp: '', cvv: '' });
-  const [paymentError, setPaymentError] = useState('');
 
-  const [expandedSections, setExpandedSections] = useState({
-    activeReservations: false,
-    activeFines: false,
-    orderHistory: false,
-  });
-
-  // Fetch user and initialize
+  // 1) Fetch logged-in user data
   useEffect(() => {
-    async function fetchUserInfo() {
-      const loginRes = await fetch('/api/login?includeUser=true');
-      const loginData = await loginRes.json();
-      if (!loginData.loggedIn) {
-        router.push('/login');
+    async function fetchUser() {
+      const res = await fetch("/api/login?includeUser=true");
+      const data = await res.json();
+      if (!data.loggedIn) {
+        router.push("/login");
         return;
       }
-      const id = loginData.user.id;
-      setUserID(id);
+      setUserID(data.user.id);
       setFormData({
-        email: loginData.user.email,
-        name: loginData.user.name,
-        password: '',
-        permitType: loginData.user.permitType,
-        licensePlate: loginData.user.licensePlate,
-        idNumber: loginData.user.idNumber,
+        email: data.user.email || "",
+        name: data.user.name || "",
+        password: "",
+        permitType: data.user.permitType || "",
+        licensePlate: data.user.licensePlate || "",
+        idNumber: data.user.idNumber || ""
       });
     }
-    fetchUserInfo();
+    fetchUser();
   }, [router]);
 
-  // Fetch reservations & fines
+  // 2) Load all related data once userID is known
   useEffect(() => {
     if (!userID) return;
-    async function fetchData() {
+    async function loadData() {
       setLoading(true);
-      // Reservations
-      const resR = await fetch(`/api/reservations/user/${userID}`);
-      const dataR: Reservation[] = await resR.json();
-      const now = new Date();
-      setActiveReservations(
-        dataR.filter(r => now.getTime() - new Date(r.endTime).getTime() < 24 * 3600 * 1000)
-      );
-      setOrderHistory(
-        dataR.filter(r => now.getTime() - new Date(r.endTime).getTime() >= 24 * 3600 * 1000)
-      );
-      // Fines
-      const resF = await fetch(`/api/fines/user/${userID}`);
-      const dataF: Fine[] = await resF.json();
-      setActiveFines(dataF);
+      
+      // Build lotId -> lotName map
+      const lotRes = await fetch("/api/parkingLots");
+      const lots: Lot[] = await lotRes.json();
+      const lotMap: Record<number,string> = {};
+      lots.forEach(l => lotMap[l.id] = l.name);
+      
+      // Build paymentId -> amount map
+      const payRes = await fetch("/api/payments");
+      const payments: Payment[] = await payRes.json();
+      const payMap: Record<number,number> = {};
+      payments.forEach(p => payMap[p.id] = p.amount);
+      
+      // Fetch reservations for this user
+      const resRes = await fetch(`/api/reservations/user/${userID}`);
+      const allRes: Reservation[] = await resRes.json();
+      const now = Date.now();
+      setReservations(allRes.filter(r => new Date(r.endTime).getTime() > now));
+      setOrderHistory(allRes.filter(r => new Date(r.endTime).getTime() <= now));
+
+            // Fetch all spot type records and build spot->lot map
+      const stRes = await fetch('/api/parkingSpotTypes');
+      const spotTypes: SpotType[] = await stRes.json();
+      const spotMap: Record<number,string> = {};
+      spotTypes.forEach(st => {
+        spotMap[st.id] = lotMap[st.lotID] || 'Unknown Lot';
+      });
+      setLotNames(spotMap);
+      setPaymentAmounts(payMap);
+
+      // Fetch active fines
+      const fRes = await fetch(`/api/fines/user/${userID}`);
+      const fines: Fine[] = await fRes.json();
+      setActiveFines(fines);
+
       setLoading(false);
     }
-    fetchData();
+    loadData();
   }, [userID]);
 
-  // Profile handlers
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  }
-  function handleEdit() {
-    setBackupFormData(formData);
-    setIsEditing(true);
-  }
-  function handleCancel() {
-    if (backupFormData) setFormData(backupFormData);
-    setIsEditing(false);
-  }
-
-
-  async function handleSubmit(e: React.FormEvent) {
+  // Handlers
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+  const handleEdit = () => { setBackupFormData(formData); setIsEditing(true); };
+  const handleCancel = () => { if (backupFormData) setFormData(backupFormData); setIsEditing(false); };
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-  
-    // Prepare data to be sent to the API
-    const updatedData = {
-      email: formData.email,
-      name: formData.name,
-      permitType: formData.permitType,
-      licensePlate: formData.licensePlate,
-      password: formData.password, 
-    };
-  
-    // Call API to update user info
-    try {
-      const res = await fetch(`/api/users/${userID}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updatedData),
-      });
-  
-      const responseData = await res.json();
-  
-      if (res.ok) {
-        // Successfully updated user info
-        setFormData({
-          ...formData,
-          email: responseData.email,
-          name: responseData.name,
-          permitType: responseData.permitType,
-          licensePlate: responseData.licensePlate,
-          password: '', // Clear password after update
-        });
-        setIsEditing(false);
-      } else {
-        // Handle errors from the server
-        console.error('Failed to update:', responseData.error);
-        alert('Failed to update profile. Please try again.');
-      }
-    } catch (err) {
-      console.error('Error:', err);
-      window.location.reload();
-    }
-  }
-
-
-
-  function toggleSection(key: keyof typeof expandedSections) {
-    setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }));
-  }
-
-  // Payment handlers
-  function openPayment(fine: Fine) {
-    setSelectedFine(fine);
-    setCardInfo({ name: '', number: '', exp: '', cvv: '' });
-    setPaymentError('');
-    setShowModal(true);
-  }
-  function handleCardChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setCardInfo({ ...cardInfo, [e.target.name]: e.target.value });
-  }
-
-
-  async function processPayment() {
-    if (!selectedFine) return;
-
-    const paymentData = {
-        userID: selectedFine.userID, 
-        amount: selectedFine.amount,
-    };
-
-    try {
-        //create payment entry
-        const paymentRes = await fetch('/api/payments/createPayment', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(paymentData),
-        });
-
-        const paymentResponseData = await paymentRes.json();
-
-        if (!paymentRes.ok) {
-            throw new Error(paymentResponseData.error || 'Failed to register payment');
-        }
-
-        //update fine
-        const fineUpdateRes = await fetch(`/api/fines/${selectedFine.id}`, {
-            method: 'PUT',
-        });
-
-        const fineUpdateResponseData = await fineUpdateRes.json();
-
-        if (!fineUpdateRes.ok) {
-            throw new Error(fineUpdateResponseData.error || 'Failed to update fine status');
-        }
-
-        //update UI
-        setActiveFines(prev =>
-            prev.map(f =>
-                f.id === selectedFine.id ? { ...f, statusPaid: true } : f
-            )
-        );
-        setShowModal(false);
-
-    } catch (e: any) {
-        setPaymentError(e.message);
-    }
-}
+    await fetch(`/api/users/${userID}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData)
+    });
+    setIsEditing(false);
+  };
+  const toggleSection = (sec: keyof typeof expanded) => setExpanded(prev => ({ ...prev, [sec]: !prev[sec] }));
+  const openPaymentModal = (fine: Fine) => { setSelectedFine(fine); setShowModal(true); };
+  const handleFinePaid = (id: number) => setActiveFines(prev => prev.map(f => f.id === id ? { ...f, statusPaid: true } : f));
 
   return (
-    <main className="max-w-4xl mx-auto p-4">
-      <h1 className="text-2xl font-bold text-black mb-6">Profile Page</h1>
-
+    <main className="min-h-screen bg-gray-50 py-8 px-4 text-black">
       {/* Profile Form */}
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email address</label>
-          <input
-            type="email" id="email" name="email" value={formData.email} onChange={handleChange}
-            disabled={!isEditing}
-            className="block w-full border border-gray-300 rounded py-2 px-3 text-black disabled:bg-gray-100 disabled:cursor-not-allowed"
-            required
-          />
-        </div>
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-          <input
-            type="text" id="name" name="name" value={formData.name} onChange={handleChange}
-            disabled={!isEditing}
-            className="block w-full border border-gray-300 rounded py-2 px-3 text-black disabled:bg-gray-100 disabled:cursor-not-allowed"
-            required
-          />
-        </div>
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-          <input
-            type="password" id="password" name="password" value={formData.password} onChange={handleChange}
-            disabled={!isEditing}
-            className="block w-full border border-gray-300 rounded py-2 px-3 text-black disabled:bg-gray-100 disabled:cursor-not-allowed"
-            required
-          />
-        </div>
-        <div>
-          <label htmlFor="permitType" className="block text-sm font-medium text-gray-700 mb-1">Permit Type</label>
-          <select
-            id="permitType" name="permitType" value={formData.permitType} onChange={handleChange}
-            disabled={!isEditing}
-            className="block w-full border border-gray-300 rounded py-2 px-3 text-black disabled:bg-gray-100 disabled:cursor-not-allowed"
-            required
-          >
-            <option value="Resident">Resident</option>
-            <option value="Commuter">Commuter</option>
-            <option value="Commuter Premium">Commuter Premium</option>
-            <option value="Faculty/Staff">Faculty/Staff</option>
-            <option value="ADA">ADA</option>
-            <option value="Other/Misc.">Other/Misc.</option>
-            <option value="None">None</option>
-          </select>
-        </div>
-        <div>
-          <label htmlFor="licensePlate" className="block text-sm font-medium text-gray-700 mb-1">License Plate</label>
-          <input
-            type="text" id="licensePlate" name="licensePlate" value={formData.licensePlate} onChange={handleChange}
-            disabled={!isEditing}
-            className="block w-full border border-gray-300 rounded py-2 px-3 text-black disabled:bg-gray-100 disabled:cursor-not-allowed"
-            required
-          />
-        </div>
-        <div className="flex space-x-4">
-          {isEditing ? (
-            <>
-              <button type="submit" className="bg-black text-white rounded py-2 px-4 hover:bg-gray-800">Save</button>
-              <button type="button" onClick={handleCancel} className="bg-gray-300 text-black rounded py-2 px-4 hover:bg-gray-400">Cancel</button>
-            </>
-          ) : (
-            <button type="button" onClick={handleEdit} data-cy="edit-profile" className="bg-black text-white rounded py-2 px-4 hover:bg-gray-800">Edit</button>
-          )}
-        </div>
-      </form>
-
-      <div className="mt-10">
-        {/* Active Reservations section */}
-        <div className="border-b border-gray-200 pb-2 mb-4">
-          <button type="button" onClick={() => toggleSection('activeReservations')} className="w-full flex justify-between items-center text-left">
-            <span className="text-lg font-semibold text-black">Active Reservations</span>
-            <span className="text-lg text-black">{expandedSections.activeReservations ? '▲' : '▼'}</span>
-          </button>
-          {expandedSections.activeReservations && (
-            <div className="mt-2 text-black space-y-2">
-              {reservations.length > 0 ? (
-                reservations.map(res => (
-                  <div key={res.id} className="border rounded p-3 bg-gray-50 text-sm">
-                    <p><strong>Start:</strong> {new Date(res.startTime).toLocaleString()}</p>
-                    <p><strong>End:</strong> {new Date(res.endTime).toLocaleString()}</p>
-                  </div>
-                ))
-              ) : (
-                <p>No active reservations at this time.</p>
-              )}
+      <div className="max-w-3xl mx-auto mb-8 bg-white shadow rounded-lg p-8">
+        <h2 className="text-2xl font-semibold mb-6">Profile</h2>
+        <form onSubmit={handleSubmit} className="grid gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Email</label>
+              <input type="email" name="email" value={formData.email} onChange={handleChange} disabled={!isEditing} className="w-full border rounded p-2" />
             </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Name</label>
+              <input type="text" name="name" value={formData.name} onChange={handleChange} disabled={!isEditing} className="w-full border rounded p-2" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Password</label>
+              <input type="password" name="password" value={formData.password} onChange={handleChange} disabled={!isEditing} className="w-full border rounded p-2" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Permit Type</label>
+              <select name="permitType" value={formData.permitType} onChange={handleChange} disabled={!isEditing} className="w-full border rounded p-2 bg-white">
+                <option value="">Select...</option>
+                <option>Faculty/Staff</option>
+                <option>Resident</option>
+                <option>Commuter</option>
+                <option>Commuter Premium</option>
+                <option>ADA</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">License Plate</label>
+              <input type="text" name="licensePlate" value={formData.licensePlate} onChange={handleChange} disabled={!isEditing} className="w-full border rounded p-2" />
+            </div>
+          </div>
+          <div className="mt-4">
+            {isEditing ? (
+              <div className="flex space-x-3">
+                <button type="button" onClick={handleCancel} className="px-4 py-2 border rounded">Cancel</button>
+                <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded">Save Changes</button>
+              </div>
+            ) : (
+              <button type="button" onClick={handleEdit} className="px-4 py-2 bg-indigo-600 text-white rounded">Edit Profile</button>
+            )}
+          </div>
+        </form>
+      </div>
+
+      {/* Data Sections */}
+      <div className="max-w-3xl mx-auto space-y-6">
+        {/* Active Reservations */}
+        <div className="bg-white shadow rounded-lg p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-semibold">Active Reservations</h3>
+            <button onClick={() => toggleSection("reservations")} className="text-xl">{expanded.reservations ? '▲' : '▼'}</button>
+          </div>
+          {expanded.reservations && (
+            <ul className="divide-y">
+              {loading && <li className="p-3 text-gray-500">Loading...</li>}
+              {!loading && reservations.length === 0 && <li className="p-3 text-gray-500">No active reservations.</li>}
+              {reservations.map(r => (
+                <li key={r.id} className="flex justify-between p-3">
+                  <div>
+                    <p><strong>Lot:</strong> {lotNames[r.spotID] || 'Unknown'}</p>
+                    <p><strong>Start:</strong> {new Date(r.startTime).toLocaleString()}</p>
+                    <p><strong>End:</strong> {new Date(r.endTime).toLocaleString()}</p>
+                  </div>
+                  <div className="text-right">
+                    <p><strong>Amount:</strong> ${paymentAmounts[r.paymentID]?.toFixed(2) || '0.00'}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
 
-        {/* Active Fines section */}
-        <div className="border-b border-gray-200 pb-2 mb-4">
-          <button type="button" onClick={() => toggleSection('activeFines')} className="w-full flex justify-between items-center text-left">
-            <span className="text-lg font-semibold text-black">Active Fines</span>
-            <span className="text-lg text-black">{expandedSections.activeFines ? '▲' : '▼'}</span>
-          </button>
-          {expandedSections.activeFines && (
-            <div className="mt-2 text-black space-y-4">
-              {loading ? (
-                <p>Loading fines...</p>
-              ) : activeFines.length > 0 ? (
-                activeFines.map(f => (
-                  <div key={f.id} className="border rounded p-3 bg-gray-50 text-sm">
-                    <p><strong>Date Assigned:</strong> {new Date(f.createdAt).toLocaleString()}</p>
-                    <p><strong>Pay By:</strong> {new Date(f.payBy).toLocaleDateString()}</p>
-                    <p><strong>Amount:</strong> ${f.amount.toFixed(2)}</p>
+        {/* Active Fines */}
+        <div className="bg-white shadow rounded-lg p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-semibold">Active Fines</h3>
+            <button onClick={() => toggleSection("fines")} className="text-xl">{expanded.fines ? '▲' : '▼'}</button>
+          </div>
+          {expanded.fines && (
+            <ul className="divide-y">
+              {loading && <li className="p-3 text-gray-500">Loading...</li>}
+              {!loading && activeFines.length === 0 && <li className="p-3 text-gray-500">No active fines.</li>}
+              {activeFines.map(f => (
+                <li key={f.id} className="flex justify-between p-3">
+                  <div>
+                    <p><strong>Date:</strong> {new Date(f.createdAt).toLocaleDateString()}</p>
                     <p><strong>Description:</strong> {f.description}</p>
-                    <p><strong>Status:</strong>{' '}
-                      <span className={f.statusPaid ? 'text-green-500' : 'text-red-500'}>
-                        {f.statusPaid ? 'Paid' : 'Unpaid'}
-                      </span>
-                    </p>
-                    {!f.statusPaid && (
-                      <button onClick={() => openPayment(f)} className="mt-2 bg-red-600 text-white py-1 px-4 rounded hover:bg-red-700">Pay</button>
-                    )}
                   </div>
-                ))
-              ) : (
-                <p>No active fines at this time.</p>
-              )}
-            </div>
+                  <div className="text-right space-y-1">
+                    <p><strong>Amount:</strong> ${f.amount.toFixed(2)}</p>
+                    {!f.statusPaid 
+                      ? <button onClick={() => openPaymentModal(f)} className="px-3 py-1 bg-red-600 text-white rounded">Pay Now</button>
+                      : <span className="text-green-600">Paid</span>
+                    }
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
 
-        {/* Order History section */}
-        <div className="border-b border-gray-200 pb-2 mb-4">
-          <button type="button" onClick={() => toggleSection('orderHistory')} className="w-full flex justify-between items-center text-left">
-            <span className="text-lg font-semibold text-black">Order History</span>
-            <span className="text-lg text-black">{expandedSections.orderHistory ? '▲' : '▼'}</span>
-          </button>
-          {expandedSections.orderHistory && (
-            <div className="mt-2 text-black space-y-2">
-              {orderHistory.length > 0 ? (
-                orderHistory.map(res => (
-                  <div key={res.id} className="border rounded p-3 bg-gray-50 text-sm">
-                    <p><strong>Start:</strong> {new Date(res.startTime).toLocaleString()}</p>
-                    <p><strong>End:</strong> {new Date(res.endTime).toLocaleString()}</p>
+        {/* Order History */}
+        <div className="bg-white shadow rounded-lg p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-semibold">Order History</h3>
+            <button onClick={() => toggleSection("history")} className="text-xl">{expanded.history ? '▲' : '▼'}</button>
+          </div>
+          {expanded.history && (
+            <ul className="divide-y">
+              {loading && <li className="p-3 text-gray-500">Loading...</li>}
+              {!loading && orderHistory.length === 0 && <li className="p-3 text-gray-500">No past reservations.</li>}
+              {orderHistory.map(r => (
+                <li key={r.id} className="flex justify-between p-3">
+                  <div>
+                    <p><strong>Lot:</strong> {lotNames[r.spotID] || 'Unknown'}</p>
+                    <p><strong>Start:</strong> {new Date(r.startTime).toLocaleString()}</p>
+                    <p><strong>End:</strong> {new Date(r.endTime).toLocaleString()}</p>
                   </div>
-                ))
-              ) : (
-                <p>No active reservations at this time.</p>
-              )}
-            </div>
+                  <div className="text-right">
+                    <p><strong>Amount:</strong> ${paymentAmounts[r.paymentID]?.toFixed(2) || '0.00'}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       </div>
 
-      {/* Payment Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded shadow-lg w-full max-w-md">
-            <h3 className="text-lg font-semibold mb-4 text-black">Enter Payment Info</h3>
-            {paymentError && (
-              <p className="text-red-600 mb-2">{paymentError}</p>
-            )}
-            <input
-              name="name"
-              placeholder="Cardholder Name"
-              value={cardInfo.name}
-              onChange={handleCardChange}
-              className="w-full mb-2 border p-2 text-black placeholder-gray-700"
-            />
-            <input
-              name="number"
-              placeholder="Card Number"
-              value={cardInfo.number}
-              onChange={handleCardChange}
-              className="w-full mb-2 border p-2 text-black placeholder-gray-700"
-            />
-            <input
-              name="exp"
-              placeholder="MM/YY"
-              value={cardInfo.exp}
-              onChange={handleCardChange}
-              className="w-full mb-2 border p-2 text-black placeholder-gray-700"
-            />
-            <input
-              name="cvv"
-              placeholder="CVV"
-              value={cardInfo.cvv}
-              onChange={handleCardChange}
-              className="w-full mb-4 border p-2 text-black placeholder-gray-700"
-            />
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2 border rounded text-black"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={processPayment}
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-              >
-                Submit
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Stripe modal */}
+      {showModal && selectedFine && (
+        <Elements stripe={stripePromise}>
+          <PaymentModal fine={selectedFine} onClose={() => setShowModal(false)} onPaid={handleFinePaid} />
+        </Elements>
       )}
     </main>
   );

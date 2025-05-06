@@ -11,10 +11,12 @@ export async function POST(request) {
   try {
     const { data, error } = await supabase
       .from('parkingLots')
-      .insert([{ name, location, capacityTotal, coordinates, meterRate }]);
+      .insert([{ name, location, capacityTotal, coordinates, meterRate }])
+      .select()
+      .single();
     if (error) throw error;
     return NextResponse.json(
-      { message: 'Parking Lot registered successfully', user: data },
+      { message: 'Parking Lot registered successfully', data },
       { status: 201 }
     );
   } catch (err) {

@@ -31,8 +31,23 @@ export default function GiveFinesPage() {
   const [finesMap, setFinesMap] = useState<Record<number, Fine[]>>({});
   const [expandedFines, setExpandedFines] = useState<Record<number, boolean>>({});
 
+  const [userID, setUserID] = useState(0);
   const router = useRouter();
+  useEffect(() => {
+    async function fetchUser() {
+      const res = await fetch("/api/login?includeUser=true");
+      const data = await res.json();
+      if (!data.loggedIn || !data.user || !data.user.isAdmin) {
+        router.push("/login");
+        return;
+      }
+      setUserID(data.user.id);
+    }
+    fetchUser();
+  }, [router]);
 
+
+  
   useEffect(() => {
     async function fetchUsers() {
       try {
@@ -100,7 +115,7 @@ export default function GiveFinesPage() {
   }
 
   return (
-    <main className="bg-gray-50 min-h-screen p-6">
+    <main className="bg-gray-50 p-6">
       <div className="max-w-3xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-800 mb-6">Give Fine</h1>
 
