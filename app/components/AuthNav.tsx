@@ -7,7 +7,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 
 interface User {
-  isAuth: boolean
+  isAdmin: boolean
   isConfirmed: boolean
 }
 
@@ -25,6 +25,7 @@ export default function AuthNav(): ReactElement {
       try {
         const res = await fetch('/api/login?includeUser=true', { cache: 'no-store' })
         const { loggedIn, user } = await res.json()
+        console.log(user, user.isAuth, user.isConfirmed);
         if (active) setUser(loggedIn ? user : null)
       } catch {
         if (active) setUser(null)
@@ -69,7 +70,7 @@ export default function AuthNav(): ReactElement {
     )
   }
 
-  if (!user.isAuth) {
+  if (!user.isAdmin) {
     return (
       <div className="space-x-4">
         <Link href="/reserve" className="nav-btn-1">Reserve</Link>
