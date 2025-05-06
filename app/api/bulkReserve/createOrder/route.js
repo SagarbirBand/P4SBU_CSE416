@@ -10,39 +10,17 @@ export async function POST(request) {
 
   try {
 
-    //get available slots
-    const { data: spotTypeData, error: spotTypeError } = await supabase
-      .from('parkingSpotTypes')
-      .select('*')
-      .eq('id', spotID)
-      .single();
-    if (spotTypeError) throw spotTypeError;
 
-    const currAvail = spotTypeData.currentAvailable;
+    const { data: bulkData, error: bulkError } = await supabase
+        .from('bulkReserve')
+        .insert([{ userID, spotID, paymentID, startTime, endTime, numSlots }])
+        .select()
+        .single();
 
-    //create reservations
-    for (let i = 0; i < numSlots; i++) {
-        const { data: reservationData, error: reservationError } = await supabase
-        .from('reservations')
-        .insert([{ userID, spotID, paymentID, startTime, endTime }])
-        .select();
-        if (reservationError) { console.log("Reservation Error:", reservationError); throw reservationError;}
-    }
-
-    //modify currAvail now
-    const newAvail = currAvail - 1;
-    const { data: updatedSpot, error: updateError } = await supabase
-      .from('parkingSpotTypes')
-      .update({ currentAvailable: newAvail })
-      .eq('id', spotID)
-      .select()
-      .single();
-    if (updateError) throw updateError;
+    if (bulkError) throw bulkError;
 
     return NextResponse.json(
-      { success: true, 
-        id: reservationData.id 
-      },
+      { success: true, reservations: insertedReservations },
       { status: 201 }
     );
 

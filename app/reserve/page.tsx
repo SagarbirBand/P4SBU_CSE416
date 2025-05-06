@@ -428,6 +428,18 @@ const handleReserve = async (
     // FREE case: no modal
     if (needsAdmin) {
       alert('Your free reservation request has been submitted for approval.');
+      await fetch('/api/bulkReserve/createOrder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userID,
+          spotID: spotTypeID,
+          paymentID: 57,
+          startTime: start,
+          endTime: end,
+          numSlots: quantity,
+        }),
+      });
     } else {
       // Create 'quantity' free reservations (paymentID 57)
       for (let i = 0; i < quantity; i++) {
@@ -465,7 +477,18 @@ const handleReservationSubmit = async () => {
   if (needsAdmin) {
     setShowModal(false);
     alert('Your paid reservation request has been submitted for approval.');
-    return;
+      await fetch('/api/bulkReserve/createOrder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userID,
+          spotID: spotTypeID,
+          paymentID: 57,
+          startTime: start,
+          endTime: end,
+          numSlots: quantity,
+        }),
+      });
   }
 
   if (!stripe || !elements) {

@@ -94,6 +94,7 @@ export default function AuthNav(): ReactElement {
       <Link href="/userAuth"    className="nav-btn-1">User Auth</Link>
       <Link href="/giveFines"   className="nav-btn-1">Fines</Link>
       <Link href="/reports"     className="nav-btn-1">Reports</Link>
+      <Link href="/orderAuth"     className="nav-btn-1">Order Auth</Link>
       <button
         onClick={async () => {
           await fetch('/api/logout')
