@@ -59,6 +59,7 @@ interface SelectedReservation {
   end: string;
   meterRate: number;
   spotTypeID: number;
+  quantity: number;
 }
 
 const ALL_PERMIT_TYPES = [
@@ -94,8 +95,10 @@ function calculateCost(
   start: string | null | undefined,
   end: string | null | undefined,
   rate: number | null | undefined,
-  permitType?: string | null
+  permitType?: string | null,
+  quantity: number = 1
 ): number {
+  
   // Return 0 if any required parameter is missing
   if (!start || !end || rate == null || !permitType) {
     return 0;
@@ -107,7 +110,7 @@ function calculateCost(
   const startDate = new Date(start);
   const endDate = new Date(end);
   const diffHours = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60);
-  return diffHours * rate;
+  return diffHours * rate * quantity;
 }
 
 // ─── INITIALIZE STRIPE.JS ───────────────────────────────
@@ -140,6 +143,7 @@ function ParkingPageContent() {
   const [listSortBy, setListSortBy] = useState<'capacity' | 'proximity'>(
     'capacity'
   );
+  const [quantity, setQuantity] = useState<number>(1);
 
   // Time pickers: default to next full hour +1h
   const [startTime, setStartTime] = useState<string>(() => {
@@ -170,6 +174,7 @@ function ParkingPageContent() {
   const [mapView, setMapView] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [customOrigin, setCustomOrigin] = useState<Coordinates | null>(null);
+  const [activeCount, setActiveCount] = useState<number>(0);
 
   const [selectedLot, setSelectedLot] = useState<number | null>(null);
   const [directions, setDirections] = useState<
@@ -201,6 +206,9 @@ function ParkingPageContent() {
         return;
       }
       setUserID(loginData.user.id);
+      const r = await fetch(`/api/reservations/user/${loginData.user.id}`);
+      const arr = await r.json();
+      setActiveCount(arr.filter((x: any) => new Date(x.endTime) > new Date()).length);
     }
     fetchUserInfo();
   }, [router]);
@@ -356,16 +364,22 @@ function ParkingPageContent() {
               selectedTypes.includes(t.permitType as PermitType)
             )
           : l.types;
-        const rem = matching.reduce((s, t) => s + t.currentAvailable, 0);
+        const typesToShow = hideFull
+        ? matching.filter((t) => t.currentAvailable >= quantity)
+        : matching;
+        const remainingCapacity = typesToShow.reduce(
+          (sum, t) => sum + t.currentAvailable,
+          0
+        );
         return {
           ...l,
-          remainingCapacity: rem,
+          remainingCapacity,
           hasMatch: !selectedTypes.length || matching.length > 0,
-          typesToShow: matching,
+          typesToShow,
         };
       })
       .filter((l) => l.hasMatch)
-      .filter((l) => (hideFull ? l.remainingCapacity > 0 : true))
+      .filter((l) => (hideFull ? l.remainingCapacity > quantity : true))
       .sort((a, b) => {
         if (!mapView) {
           if (listSortBy === 'proximity') {
@@ -392,92 +406,129 @@ function ParkingPageContent() {
     mapView,
     selectedBuilding,
     customOrigin,
+    quantity
   ]);
 
   // ─── RESERVATION & PAYMENT ──────────────────────────────
-  const handleReserve = (
-    lotName: string,
-    permitType: string,
-    start: string,
-    end: string,
-    meterRate: number,
-    spotTypeID: number
-  ) => {
-    setSelectedReservation({ lotName, permitType, start, end, meterRate, spotTypeID });
-    setPaymentError('');
-    setShowModal(true);
-  };
+// ─── 1) Reserve button handler: free vs paid, skip modal when free ───
+const handleReserve = async (
+  lotName: string,
+  permitType: string,
+  start: string,
+  end: string,
+  meterRate: number,
+  spotTypeID: number,
+  quantity: number
+) => {
+  // Compute cost & admin‐approval need
+  const amount = calculateCost(start, end, meterRate, permitType, quantity);
+  const needsAdmin = quantity >= 3 || (activeCount + quantity) >= 3;
 
-  const handleReservationSubmit = async () => {
-    if (!selectedReservation) return;
-    if (!stripe || !elements) {
-      setPaymentError('Stripe has not loaded yet.');
-      return;
-    }
-
-    // calculate amount
-    const amount = calculateCost(
-      selectedReservation.start,
-      selectedReservation.end,
-      selectedReservation.meterRate,
-      selectedReservation.permitType
-    );
-
-    // 1) Create PaymentIntent on server
-    const resp = await fetch('/api/payments/createPayment', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userID, amount }),
-    });
-    if (!resp.ok) {
-      const err = await resp.json();
-      setPaymentError(err.error || 'Payment initialization failed');
-      return;
-    }
-    const { clientSecret, paymentIntentId } = await resp.json();
-
-    // 2) Confirm with Stripe.js
-    const { error, paymentIntent } = await stripe.confirmCardPayment(
-      clientSecret,
-      {
-        payment_method: {
-          card: elements.getElement(CardElement)!,
-        },
+  if (amount === 0) {
+    // FREE case: no modal
+    if (needsAdmin) {
+      alert('Your free reservation request has been submitted for approval.');
+    } else {
+      // Create 'quantity' free reservations (paymentID 57)
+      for (let i = 0; i < quantity; i++) {
+        await fetch('/api/reservations/createReservation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userID,
+            spotID: spotTypeID,
+            paymentID: 57,
+            startTime: start,
+            endTime: end,
+          }),
+        });
       }
-    );
-    if (error || paymentIntent?.status !== 'succeeded') {
-      setPaymentError(error?.message || 'Payment failed');
-      return;
+      alert('Reservation successful!');
     }
+    return;
+  }
 
-    // 3) Create reservation
-    const reservationResponse = await fetch('/api/reservations/createReservation', {
+  // PAID case: show modal
+  setSelectedReservation({ lotName, permitType, start, end, meterRate, spotTypeID, quantity });
+  setPaymentError('');
+  setShowModal(true);
+};
+
+// ─── 2) Modal “Pay & Reserve” / “Request” flow ───────────────────────
+const handleReservationSubmit = async () => {
+  if (!selectedReservation || userID === null) return;
+
+  const { start, end, meterRate, permitType, spotTypeID, quantity } = selectedReservation;
+  const amount = calculateCost(start, end, meterRate, permitType, quantity);
+  const needsAdmin = quantity >= 3 || (activeCount + quantity) >= 3;
+
+  // Paid + admin‐requesting: skip Stripe, just notify
+  if (needsAdmin) {
+    setShowModal(false);
+    alert('Your paid reservation request has been submitted for approval.');
+    return;
+  }
+
+  // Paid + immediate: run Stripe
+  if (!stripe || !elements) {
+    setPaymentError('Stripe has not loaded yet.');
+    return;
+  }
+
+  // 1) Create Stripe PaymentIntent
+  const init = await fetch('/api/payments/createPayment', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userID, amount }),
+  });
+  if (!init.ok) {
+    const err = await init.json();
+    setPaymentError(err.error || 'Payment init failed');
+    return;
+  }
+  const { clientSecret, paymentIntentId } = await init.json();
+
+  // 2) Confirm with Stripe.js
+  const { error: payErr, paymentIntent } = await stripe.confirmCardPayment(
+    clientSecret,
+    { payment_method: { card: elements.getElement(CardElement)! } }
+  );
+  if (payErr || paymentIntent?.status !== 'succeeded') {
+    setPaymentError(payErr?.message || 'Payment failed');
+    return;
+  }
+
+  // 3) Create 'quantity' reservations with same paymentIntentId
+  for (let i = 0; i < quantity; i++) {
+    const res = await fetch('/api/reservations/createReservation', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         userID,
-        spotID: selectedReservation.spotTypeID,
-        paymentID: paymentIntentId,
-        startTime: selectedReservation.start,
-        endTime: selectedReservation.end,
+        spotID: spotTypeID,
+        paymentID: parseInt(paymentIntent.id, 10),
+        startTime: start,
+        endTime: end,
       }),
     });
-    if (!reservationResponse.ok) {
-      const err = await reservationResponse.json();
+    if (!res.ok) {
+      const err = await res.json();
       setPaymentError(err.error || 'Reservation failed');
       return;
     }
+  }
 
-    setShowModal(false);
-    router.push('/dashboard');
-  };
+  setShowModal(false);
+  alert('Reservation successful!');
+};
+
 
   // ─── RENDER ───────────────────────────────────────────────
   if (mapView && !isLoaded)
     return <div className="p-4 text-black">Loading map…</div>;
 
   return (
-    <main className="flex flex-col" style={{ height: 'calc(100vh - 73px)' }}>
+    <main className="flex flex-col">
       {/* Header */}
       <header className="flex items-center p-4 border-b text-black">
         <input
@@ -542,6 +593,20 @@ function ParkingPageContent() {
                   onChange={handleEndChange}
                   className="border p-2 w-full text-black"
                 />
+              </div>
+              <div className="mt-4">
+                <label className="font-medium text-black">Quantity</label>
+                <div className="inline-flex items-center ml-2">
+                <button
+                    onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                    className="px-2 py-1 bg-gray-200 rounded-l"
+                  >−</button>
+                <span className="px-4 py-1 border-t border-b text-center">{quantity}</span>
+                <button
+                    onClick={() => setQuantity(q => q + 1)}
+                    className="px-2 py-1 bg-gray-200 rounded-r"
+                  >+</button>
+                </div>
               </div>
               {!mapView && (
                 <div>
@@ -681,7 +746,7 @@ function ParkingPageContent() {
                               key={t.id}
                               className="flex items-center justify-between"
                             >
-                              <span className="truncate mr-4">{t.permitType}</span>
+                              <span className="truncate mr-4">{`${t.permitType} (${t.currentAvailable} available)`}</span>
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -691,17 +756,18 @@ function ParkingPageContent() {
                                     startTime,
                                     endTime,
                                     l.meterRate,
-                                    t.id
+                                    t.id,
+                                    quantity
                                   );
                                 }}
-                                disabled={t.currentAvailable === 0}
+                                disabled={t.currentAvailable < quantity}
                                 className={`px-2 py-1 rounded text-white ${
-                                  t.currentAvailable > 0
+                                  t.currentAvailable >= quantity
                                     ? 'bg-green-500 hover:bg-green-600 active:bg-green-700'
                                     : 'bg-red-500 hover:bg-red-600 active:bg-red-700'
                                 }`}
                               >
-                                Reserve
+                                {t.currentAvailable >= quantity ? "Reserve" : "Full"}
                               </button>
                             </div>
                           ))}
@@ -744,7 +810,7 @@ function ParkingPageContent() {
                             key={t.id}
                             className="flex items-center justify-between"
                           >
-                            <span className="truncate mr-4">{t.permitType}</span>
+                            <span className="truncate mr-4">{`${t.permitType} (${t.currentAvailable} available)`}</span>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -754,17 +820,18 @@ function ParkingPageContent() {
                                   startTime,
                                   endTime,
                                   l.meterRate,
-                                  t.id
+                                  t.id,
+                                  quantity
                                 );
                               }}
-                              disabled={t.currentAvailable === 0}
+                              disabled={t.currentAvailable < quantity}
                               className={`px-2 py-1 rounded text-white ${
-                                t.currentAvailable > 0
+                                t.currentAvailable >= quantity
                                   ? 'bg-green-500 hover:bg-green-600 active:bg-green-700'
                                   : 'bg-red-500 hover:bg-red-600 active:bg-red-700'
                               }`}
                             >
-                              Reserve
+                              {t.currentAvailable >= quantity ? 'Reserve' : 'Full'}
                             </button>
                           </div>
                         ))}
@@ -876,7 +943,15 @@ function ParkingPageContent() {
       {showModal && selectedReservation && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded shadow-lg w-full max-w-md">
-            <h3 className="text-lg font-semibold mb-4 text-black">Enter Payment Info</h3>
+            <h3 className="text-lg font-semibold mb-4 text-black">
+              {(quantity >= 3 || activeCount >= 3) ? 'Request Approval'
+              : calculateCost(
+                selectedReservation.start,
+                selectedReservation.end,
+                selectedReservation.meterRate,
+                selectedReservation.permitType
+              ) === 0 ? 'Free Reservation' : 'Enter Payment Info'}
+            </h3>
             {paymentError && <p className="text-red-600 mb-2">{paymentError}</p>}
             <p className="mb-2 text-black">
               Reserving: <strong>{selectedReservation.lotName}</strong> ({selectedReservation.permitType})
@@ -889,9 +964,13 @@ function ParkingPageContent() {
                 selectedReservation.permitType
               ).toFixed(2)}</strong>
             </p>
-            <div className="border p-2 mb-4">
-              <CardElement options={{ hidePostalCode: true }} />
-            </div>
+            {(calculateCost(selectedReservation.start, selectedReservation.end, selectedReservation.meterRate, selectedReservation.permitType, quantity) > 0
+              && quantity < 3
+              && activeCount < 3 ) && (
+              <div className="border p-2 mb-4">
+                <CardElement options={{ hidePostalCode: true }} />
+              </div>
+            )}
             <div className="flex justify-end space-x-2">
               <button
                 onClick={() => setShowModal(false)}

@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 // GET fines for a specific user
 export async function GET(request, { params }) {
-  const { userID } = params;
+  const { userID } = await params;
   try {
     const { data, error } = await supabase
       .from('fines')

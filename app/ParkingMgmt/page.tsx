@@ -23,6 +23,8 @@ type Lot = {
   id: number;
   name: string;
   meterRate: number;
+  coordinates: string;
+  capacityTotal: number;
 };
 
 type SpotCount = {
@@ -51,6 +53,9 @@ export default function ParkingManagementPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newLotName, setNewLotName] = useState('');
   const [newMeterRate, setNewMeterRate] = useState(0);
+  const [newCords, setNewCords] = useState('');
+  const [newCapacity, setNewCapacity] = useState(0);
+  const [newLocation, setNewLocation] = useState('');
   const [newSpotCounts, setNewSpotCounts] = useState<SpotCount[]>(
     SPOT_TYPES.map(name => ({ name, count: 0 }))
   );
@@ -114,13 +119,84 @@ export default function ParkingManagementPage() {
     setMeterRates(prev => ({ ...prev, [lotId]: backupMeterRates[lotId] }));
     setEditing(prev => ({ ...prev, [lotId]: false }));
   }
+
+
   async function handleSave(lotId: number) {
-    // TODO: PUT updated meterRates[lotId] and spotData[lotId]
+
+    //first update meterRate in parkingLots
+    const res = await fetch(`/api/parkingLots/byID/${lotId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ meterRate: meterRates[lotId] }),
+    });
+    if (!res.ok) return alert('Failed to update meter rate');
+
+    //then update spotTypes capacity + currentAvailable
+
+    //get backup to compare if we need to create or del
+    const prev = backupSpotData[lotId];
+    const curr = spotData[lotId];
+
+    const prevMap = Object.fromEntries(prev.map(s => [s.name, s.count]));
+    const currMap = Object.fromEntries(curr.map(s => [s.name, s.count]));
+
+    await Promise.all(
+      Array.from(new Set([...Object.keys(prevMap), ...Object.keys(currMap)])).map(async name => {
+        const prevCount = prevMap[name] || 0; //get count for old permit type
+        const currCount = currMap[name] || 0; //get count for curr permit type
+
+        //get spotID + # of reservations active with spotID
+        const resSpotData = await fetch(`/api/parkingSpotTypes/activeRes`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lotID: lotId, permitType: name }),
+        })
+        const responseData = await resSpotData.json();
+        const activeRes = responseData.activeReservations;
+
+        if (prevCount === 0 && currCount > 0) {
+          // create
+          return fetch('/api/parkingSpotTypes/createSpotType', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              lotID: lotId,
+              permitType: name,
+              count: currCount,
+              currentAvailable: currCount,
+            }),
+          });
+        } 
+        else if (prevCount > 0 && currCount === 0) {
+          // delete
+          return fetch(`/api/parkingSpotTypes/${lotId}/${encodeURIComponent(name)}`, {
+            method: 'DELETE',
+          });
+        } 
+        else if (prevCount !== currCount && currCount > 0) {
+          // update
+          let newCurr = currCount - activeRes;
+          return fetch(`/api/parkingSpotTypes/${lotId}/${encodeURIComponent(name)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              count: currCount,
+              currentAvailable: newCurr, //can be negative but its okay. Worst case delete and then recreate upon SHRINKING
+            }),
+          });
+        }
+
+        return Promise.resolve(); //checkifnec
+      })
+    );
+
     setEditing(prev => ({ ...prev, [lotId]: false }));
   }
+
+
   async function handleDelete(lotId: number) {
     if (!confirm('Delete this lot?')) return;
-    const res = await fetch(`/api/parkingLots/${lotId}`, { method: 'DELETE' });
+    const res = await fetch(`/api/parkingLots/byID/${lotId}`, { method: 'DELETE' });
     if (res.ok) setLots(prev => prev.filter(l => l.id !== lotId));
     else alert('Failed to delete');
   }
@@ -139,21 +215,24 @@ export default function ParkingManagementPage() {
   // Add New Lot Modal Actions
   async function handleAddSave() {
     if (!newLotName) return alert('Name required');
+    const newCapacity = newSpotCounts.reduce((sum, s) => sum + s.count, 0);
     // create lot
-    const res = await fetch('/api/parkingLots', {
+    const res = await fetch('/api/parkingLots/createLot', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newLotName, meterRate: newMeterRate }),
+      body: JSON.stringify({ name: newLotName, meterRate: newMeterRate, coordinates: newCords, capacityTotal: newCapacity, location: newLocation }),
     });
     if (!res.ok) return alert('Failed to create lot');
-    const created: Lot = await res.json();
+    const resJson = await res.json();
+    const created: Lot = resJson.data;
+    console.log(created.id);
     // create spot types
     await Promise.all(
-      newSpotCounts.map(s =>
-        fetch('/api/parkingSpotTypes', {
+      newSpotCounts.filter(s => s.count > 0).map(s =>
+        fetch('/api/parkingSpotTypes/createSpotType', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lotID: created.id, permitType: s.name, currentAvailable: s.count }),
+          body: JSON.stringify({ lotID: created.id, permitType: s.name, count: s.count, currentAvailable: s.count }),
         })
       )
     );
@@ -162,13 +241,13 @@ export default function ParkingManagementPage() {
     setMeterRates(prev => ({ ...prev, [created.id]: created.meterRate }));
     setSpotData(prev => ({ ...prev, [created.id]: newSpotCounts }));
     // reset and close
-    setNewLotName(''); setNewMeterRate(0);
+    setNewLotName(''); setNewMeterRate(0); setNewCords(''); setNewCapacity(0); setNewLocation('');
     setNewSpotCounts(SPOT_TYPES.map(name => ({ name, count: 0 })));
     setShowAddModal(false);
   }
 
   return (
-    <main className="bg-gray-50 min-h-screen p-6">
+    <main className="bg-gray-50 p-6">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-gray-800">Parking Management</h1>
@@ -262,12 +341,20 @@ export default function ParkingManagementPage() {
                 <input value={newLotName} onChange={e => setNewLotName(e.target.value)} className="mt-1 w-full border-gray-300 rounded-md shadow-sm p-2 text-black" />
               </div>
               <div>
+                <label className="block text-sm font-medium text-gray-700">Location</label>
+                <input value={newLocation} onChange={e => setNewLocation(e.target.value)} className="mt-1 w-full border-gray-300 rounded-md shadow-sm p-2 text-black" />
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700">Meter Rate ($/hr)</label>
                 <input type="number" step="0.1" value={newMeterRate} onChange={e => setNewMeterRate(parseFloat(e.target.value))} className="mt-1 w-full border-gray-300 rounded-md shadow-sm p-2 text-black" />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Coordinates ex.(x,y)</label>
+                <input value={newCords} onChange={e => setNewCords(e.target.value)} className="mt-1 w-full border-gray-300 rounded-md shadow-sm p-2 text-black" />
+              </div>
               <div className="grid grid-cols-2 gap-4 max-h-64 overflow-auto">
                 {newSpotCounts.map((s, i) => (
-                  <div key={s.name} className="flex justify-between items-center">
+                  <div key={s.name} className="flex justify-between items-center text-black">
                     <span>{s.name}</span>
                     <input type="number" min={0} value={s.count} onChange={e => {
                       const cnt = parseInt(e.target.value);
