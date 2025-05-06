@@ -469,7 +469,7 @@ function ParkingPageContent() {
     }
 
     setShowModal(false);
-    router.push('/dashboard');
+    router.push('/');
   };
 
   // ─── RENDER ───────────────────────────────────────────────

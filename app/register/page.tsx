@@ -23,7 +23,7 @@ export default function RegisterPage() {
         const res = await fetch('/api/login', { method: 'GET' });
         const data = await res.json();
         if (data.loggedIn) {
-          router.push('/dashboard');
+          router.push('/');
         }
       } catch (err) {
         console.error('Error checking login status', err);

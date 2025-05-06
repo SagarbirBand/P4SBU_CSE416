@@ -17,7 +17,7 @@ export default function LoginPage() {
         const res = await fetch('/api/login', { method: 'GET' });
         const data = await res.json();
         if (data.loggedIn) {
-          router.push('/dashboard');
+          router.push('/');
         }
       } catch (err) {
         console.error('Error checking login status', err);
@@ -48,7 +48,7 @@ export default function LoginPage() {
         console.log(user);
 
         if (user?.isConfirmed) {
-          router.push('/dashboard');
+          router.push('/');
           console.log("dasg");
         } else {
           router.push('/purgatory');
