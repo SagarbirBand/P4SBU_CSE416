@@ -16,7 +16,9 @@ export async function POST(request) {
   }
 
   try {
-    /*const { data: spotTypeData, error: spotTypeError } = await supabase
+
+
+    const { data: spotTypeData, error: spotTypeError } = await supabase
       .from('parkingSpotTypes')
       .select('*')
       .eq('id', spotID)
@@ -24,9 +26,6 @@ export async function POST(request) {
     if (spotTypeError) throw spotTypeError;
 
     const currAvail = spotTypeData.currentAvailable;
-    if (currAvail <= 0) {
-      return NextResponse.json({ error: 'No available spots for this type.' }, { status: 409 });
-    }*/
 
     const { data: reservationData, error: reservationError } = await supabase
       .from('reservations')
@@ -35,14 +34,17 @@ export async function POST(request) {
     if (reservationError) { console.log("Reservation Error:", reservationError); throw reservationError;}
     //else { console.log("all good");}
 
-    /*const newAvail = currAvail - 1;
+
+    let newAvail = currAvail - 1;
+    if (newAvail < 0) { newAvail = 0;} //safeguard
+
     const { data: updatedSpot, error: updateError } = await supabase
       .from('parkingSpotTypes')
       .update({ currentAvailable: newAvail })
       .eq('id', spotID)
       .select()
       .single();
-    if (updateError) throw updateError;*/
+    if (updateError) throw updateError;
 
     return NextResponse.json(
       { success: true, 
