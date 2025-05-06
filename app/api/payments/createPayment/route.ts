@@ -33,7 +33,7 @@ export async function POST(
   request: NextRequest
 ): Promise<
   NextResponse<
-    | { clientSecret: string; dbPaymentId: number }
+    | { clientSecret: string; paymentID: number }
     | { error: string }
   >
 > {
@@ -108,7 +108,7 @@ export async function POST(
   return NextResponse.json(
     {
       clientSecret: paymentIntent.client_secret as string,
-      dbPaymentId:  data.id,
+      paymentID:  data.id,
     },
     { status: 201 }
   )
