@@ -1,18 +1,23 @@
-import { NextResponse } from "next/server";
+// app/api/logout/route.ts
+import type { NextRequest } from 'next/server'
+import { NextResponse }     from 'next/server'
 
-export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const origin = url.origin;
+/**
+ * GET /api/logout
+ * 
+ * Clears the auth cookie and redirects to the homepage.
+ */
+export async function GET(
+  request: NextRequest
+): Promise<NextResponse> {
+  // Build absolute URL to the root path
+  const redirectUrl: URL = new URL('/', request.url)
 
-  const res = NextResponse.redirect(`${origin}/`);
+  // Issue a 307 redirect to '/'
+  const response: NextResponse = NextResponse.redirect(redirectUrl, 307)
 
-  res.cookies.set('token', '', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    path: '/',
-    maxAge: 0,
-  });
+  // Delete the 'token' cookie (HttpOnly, same path as when set)
+  response.cookies.delete({ name: 'token'})
 
-  return res;
+  return response
 }

@@ -30,13 +30,16 @@
     "recharts": "^2.15.3",
     "stripe": "^18.1.0",
     "tailwind": "^4.0.0",
-    "utf-8-validate": "^6.0.5"
+    "utf-8-validate": "^6.0.5",
+    "zod": "^3.24.4"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
+    "@types/bcrypt": "^5.0.2",
     "@types/jest": "^29.5.14",
+    "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^18.0.0",
     "@types/react": "19.1.2",
     "@types/react-dom": "19.1.3",

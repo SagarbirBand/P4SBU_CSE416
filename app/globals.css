@@ -16,10 +16,11 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* We can change this at any point if we want a dark theme*/
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #ffffff;
+    --foreground: #ffffff;
   }
 }
 
@@ -27,4 +28,19 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+body > nav { @apply w-full bg-white flex items-center justify-between px-8 py-4 border-b border-gray-200; }
+
+main {
+  height: calc(100vh - 73px);
+}
+
+@layer components {
+  .nav-btn-1 {
+    @apply inline-block align-middle leading-none text-black hover:text-red-600;
+  }
+  .nav-btn-2 {
+    @apply inline-block align-middle leading-none bg-gray-200 text-black px-4 py-2 rounded hover:bg-gray-300;
+  }
 }

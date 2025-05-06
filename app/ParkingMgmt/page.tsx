@@ -247,7 +247,7 @@ export default function ParkingManagementPage() {
   }
 
   return (
-    <main className="bg-gray-50 min-h-screen p-6">
+    <main className="bg-gray-50 p-6">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-gray-800">Parking Management</h1>
