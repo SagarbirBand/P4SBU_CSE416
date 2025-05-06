@@ -2,7 +2,6 @@
 import Link from 'next/link';
 import BGIMG from './components/BGIMG.tsx';
 import { cookies } from "next/headers";
-import RefreshHandler from './components/RefreshHandler';
 
 export default async function Home() {
 
@@ -15,7 +14,6 @@ export default async function Home() {
   return (
     <main className="relative flex flex-col items-center justify-center">
       <BGIMG url="/map-bg.jpg" />
-      <RefreshHandler />
       <div className="relative z-10 text-center">
         <h1 className="text-4xl font-bold mb-4 text-red-500">
           Welcome to P4SBU Parking System

@@ -74,7 +74,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import BGIMG from '../components/BGIMG';
-import RefreshHandler from '../components/RefreshHandler';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -130,7 +129,6 @@ export default function Dashboard() {
   {
     return (
       <main className="relative flex items-center justify-center bg-gray-100">
-        <RefreshHandler />
         <BGIMG url="/sbu-tree.jpg" />
         <div className="relative z-10 bg-white rounded-xl shadow-lg p-8 w-full max-w-2xl">
           <h1 className="text-3xl font-bold text-black mb-6">Dashboard</h1>
@@ -161,7 +159,6 @@ export default function Dashboard() {
   {
     return (
       <main className="relative flex items-center justify-center bg-gray-100">
-        <RefreshHandler />
         <BGIMG url="/sbu-tree.jpg" />
         <div className="relative z-10 bg-white rounded-xl shadow-lg p-8 w-full max-w-2xl">
           <h1 className="text-3xl font-bold text-black mb-6">Dashboard</h1>
