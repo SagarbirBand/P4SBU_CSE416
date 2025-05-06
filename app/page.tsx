@@ -53,6 +53,11 @@ function renderHome(isLoggedIn: boolean): ReactElement {
         <p className="mb-6 text-black">
           Easily reserve your parking spot at Stony Brook University!
         </p>
+        {
+          isLoggedIn ? 
+            <p>To view and edit your information, review your current orders and order history as well as your current and past fines, visit the profile page</p>
+            : null
+        }
         <div className="flex justify-center space-x-4">
           <Link
             href={destinationUrl}
