@@ -65,7 +65,7 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="relative min-h-screen flex flex-col items-center justify-center">
+    <main className="relative flex flex-col items-center justify-center">
       <BGIMG url="/map-bg.jpg" />
       <form
         onSubmit={handleLogin}

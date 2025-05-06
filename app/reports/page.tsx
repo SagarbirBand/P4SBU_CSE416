@@ -60,7 +60,7 @@ export default function AdminAnalyticsPage() {
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AA336A'];
 
   return (
-    <main className="p-8 bg-gray-100 min-h-screen text-black">
+    <main className="p-8 bg-gray-100 text-black">
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <Card title="Total Revenue" className="text-black">

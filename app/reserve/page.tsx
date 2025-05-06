@@ -477,7 +477,7 @@ function ParkingPageContent() {
     return <div className="p-4 text-black">Loading map…</div>;
 
   return (
-    <main className="flex flex-col" style={{ height: 'calc(100vh - 73px)' }}>
+    <main className="flex flex-col">
       {/* Header */}
       <header className="flex items-center p-4 border-b text-black">
         <input

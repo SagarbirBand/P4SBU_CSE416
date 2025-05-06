@@ -26,7 +26,7 @@ export default function Dashboard() {
   }, [router]);
 
   return (
-    <main className="relative min-h-screen flex items-center justify-center bg-gray-100">
+    <main className="relative flex items-center justify-center bg-gray-100">
       <BGIMG url="/sbu-tree.jpg" />
       <div className="relative z-10 bg-white rounded-xl shadow-lg p-8 w-full max-w-2xl">
         <h1 className="text-3xl font-bold text-black mb-6">Dashboard</h1>
@@ -129,7 +129,7 @@ export default function Dashboard() {
   if(user?.isAuth)
   {
     return (
-      <main className="relative min-h-screen flex items-center justify-center bg-gray-100">
+      <main className="relative flex items-center justify-center bg-gray-100">
         <RefreshHandler />
         <BGIMG url="/sbu-tree.jpg" />
         <div className="relative z-10 bg-white rounded-xl shadow-lg p-8 w-full max-w-2xl">
@@ -160,7 +160,7 @@ export default function Dashboard() {
   else
   {
     return (
-      <main className="relative min-h-screen flex items-center justify-center bg-gray-100">
+      <main className="relative flex items-center justify-center bg-gray-100">
         <RefreshHandler />
         <BGIMG url="/sbu-tree.jpg" />
         <div className="relative z-10 bg-white rounded-xl shadow-lg p-8 w-full max-w-2xl">

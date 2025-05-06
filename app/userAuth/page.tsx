@@ -79,7 +79,7 @@ export default function UserAuthPage() {
   });
 
   return (
-    <main className="bg-gray-50 min-h-screen p-6">
+    <main className="bg-gray-50 p-6">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-800 mb-6">User Authentication</h1>
 

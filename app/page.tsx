@@ -13,7 +13,7 @@ export default async function Home() {
   const destinationUrl = isLoggedIn ? "/reserve" : "/login";
 
   return (
-    <main className="relative min-h-screen flex flex-col items-center justify-center">
+    <main className="relative flex flex-col items-center justify-center">
       <BGIMG url="/map-bg.jpg" />
       <RefreshHandler />
       <div className="relative z-10 text-center">

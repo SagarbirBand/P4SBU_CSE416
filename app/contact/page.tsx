@@ -40,7 +40,7 @@ export default function ContactPage() {
   };
 
   return (
-    <main className="relative min-h-screen flex items-center justify-center p-4">
+    <main className="relative flex items-center justify-center p-4">
       <BGIMG url="/map-bg.jpg" />
       <form
         onSubmit={handleSubmit}

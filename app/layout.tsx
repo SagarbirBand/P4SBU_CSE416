@@ -1,15 +1,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import "./globals.css";
-import RefreshHandler from './components/RefreshHandler';
 import { getUserFromToken } from './api/lib/auth';
-
-const LogoutButton = () => <a
-                              href="/api/logout"
-                              className="bg-gray-200 text-black px-4 py-2 rounded hover:bg-gray-300"
-                            >
-                              Log Out
-                           </a>
 
 export const metadata = {
   title: "P4SBU",
@@ -33,54 +25,17 @@ export default async function RootLayout({
   
   const isConfirmed = user?.isConfirmed || false;
 
-  if (isLoggedIn && !isConfirmed) {
-
-    return (
-    <html lang="en">
-      <body className="bg-white">
-        <RefreshHandler />
-        <nav className="w-full bg-white flex items-center justify-between px-8 py-4 border-b border-gray-200">
-          <Link href="/" className="text-2xl font-bold text-red-600">
-            P4SBU
-          </Link>
-          <div className="space-x-6">
-            <>
-              <Link href="/contact" className="text-black hover:text-red-600">
-                Contact
-              </Link>
-              <Link
-                href="/login"
-                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-              >
-                Login
-              </Link>
-              <Link
-                href="/register"
-                className="bg-gray-200 text-black px-4 py-2 rounded hover:bg-gray-300"
-              >
-                Register
-              </Link>
-            </>
-          </div>
-        </nav>
-        {children}
-      </body>
-    </html>
-    );
-  }
-
   return (
     <html lang="en">
-      <body className="bg-white">
-        <RefreshHandler />
-        <nav className="w-full bg-white flex items-center justify-between px-8 py-4 border-b border-gray-200">
+      <body>
+        <nav>
           <Link href="/" className="text-2xl font-bold text-red-600">
             P4SBU
           </Link>
           <div className="space-x-6">
-          {!isLoggedIn ? (
+          {!isLoggedIn && !isConfirmed ? (
             <>
-              <Link href="/contact" className="text-black hover:text-red-600">
+              <Link href="/contact" className="nav-btn-1">
                 Contact
               </Link>
               <Link
@@ -91,36 +46,41 @@ export default async function RootLayout({
               </Link>
               <Link
                 href="/register"
-                className="bg-gray-200 text-black px-4 py-2 rounded hover:bg-gray-300"
+                className="nav-btn-2"
               >
                 Register
               </Link>
-            </>
-          ) : !isAdmin ? (
-            <>
-              <Link href="/reserve" className="text-black hover:text-red-600">
-                Reserve
-              </Link>
-              <Link href="/profile" className="text-black hover:text-red-600">
-                Profile
-              </Link>
-              <LogoutButton />
             </>
           ) : (
             <>
-              <Link href="/ParkingMgmt" className="text-black hover:text-red-600">
-                Parking Mgmt.
+            {!isAdmin ? (
+                <>
+                <Link href="/reserve" className="nav-btn-1">
+                  Reserve
+                </Link>
+                <Link href="/profile" className="nav-btn-1">
+                  Profile
+                </Link>
+                </>
+              ) : (
+                <>
+                  <Link href="/ParkingMgmt" className="nav-btn-1">
+                    Parking Mgmt.
+                  </Link>
+                  <Link href="/userAuth" className="nav-btn-1">
+                    User Authentication
+                  </Link>
+                  <Link href="/giveFines" className="nav-btn-1">
+                    Fines
+                  </Link>
+                  <Link href="/reports" className="nav-btn-1">
+                    Reports
+                  </Link>
+                </>
+              )}
+              <Link href="/api/logout" className="nav-btn-2">
+                Log Out
               </Link>
-              <Link href="/userAuth" className="text-black hover:text-red-600">
-                User Authentication
-              </Link>
-              <Link href="/giveFines" className="text-black hover:text-red-600">
-                Fines
-              </Link>
-              <Link href="/reports" className="text-black hover:text-red-600">
-                Reports
-              </Link>
-              <LogoutButton />
             </>
           )}
           </div>
