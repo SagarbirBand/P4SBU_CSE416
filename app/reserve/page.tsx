@@ -8,11 +8,10 @@ import {
   useLoadScript,
   GoogleMap,
   Marker,
-  DirectionsService,
   DirectionsRenderer,
 } from '@react-google-maps/api';
 
-// ↓ NEW STRIPE IMPORTS ↓
+// STRIPE IMPORTS
 import { loadStripe } from '@stripe/stripe-js';
 import {
   Elements,
@@ -256,7 +255,6 @@ function ParkingPageContent() {
   // ─── EUCLIDEAN DISTANCE ────────────────────────────────
   const recalcDistances = useCallback(
     (origin: Coordinates) => {
-      if (!lots.length) return;
       setLots((cur) =>
         cur.map((l) => {
           const [lat, lng] = l.coordinates;
