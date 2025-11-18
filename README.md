@@ -3,6 +3,9 @@
 ## Summary
 CSE 416 Project entailing the solutions to Stony Brook Campus parking. We developed a software to create an organized and simple user experience that our administration can integrate.
 
+## Login 
+Use Username: admin@admin.com Password: admin for admin login and Username: s.bandesha2021@gmail.com Password: V^.2_|]rkh69
+
 ## Third Party API's
 
 ### Payments
